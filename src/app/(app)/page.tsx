@@ -1,3 +1,6 @@
+
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Package, ShoppingCart, Users } from 'lucide-react';
 import { RecentOrdersTable } from './RecentOrdersTable';

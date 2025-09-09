@@ -1,7 +1,11 @@
+
+'use client';
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from 'react';
 
-const recentOrders = [
+const initialOrders = [
     { id: 'ORD001', customer: 'John Doe', date: '2023-11-20', total: '$150.00', status: 'Completed' },
     { id: 'ORD002', customer: 'Jane Smith', date: '2023-11-21', total: '$45.50', status: 'Pending' },
     { id: 'ORD003', customer: 'Bob Johnson', date: '2023-11-21', total: '$205.00', status: 'In Progress' },
@@ -20,7 +24,15 @@ function getStatusVariant(status: string) {
 }
 
 
-export function RecentOrdersTable() {
+export function RecentOrdersTable({ orders: ordersProp }: { orders?: any[] }) {
+    const [orders, setOrders] = useState(ordersProp || initialOrders);
+
+    useEffect(() => {
+        if (ordersProp) {
+            setOrders(ordersProp);
+        }
+    }, [ordersProp]);
+
     return (
         <Table>
             <TableHeader>
@@ -33,7 +45,7 @@ export function RecentOrdersTable() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {recentOrders.map((order) => (
+                {orders.map((order) => (
                     <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.id}</TableCell>
                         <TableCell>{order.customer}</TableCell>

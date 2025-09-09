@@ -1,9 +1,19 @@
+
+'use client';
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 
-const customers = [
+const initialCustomers = [
     { id: 'CUS001', name: 'John Doe', phone: '555-0101', totalOrders: 5, totalSpent: '$450.20' },
     { id: 'CUS002', name: 'Jane Smith', phone: '555-0102', totalOrders: 2, totalSpent: '$95.50' },
     { id: 'CUS003', name: 'Bob Johnson', phone: '555-0103', totalOrders: 8, totalSpent: '$1205.00' },
@@ -11,15 +21,95 @@ const customers = [
     { id: 'CUS005', name: 'Charlie Brown', phone: '555-0105', totalOrders: 1, totalSpent: '$99.99' },
 ];
 
+const customerSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().min(1, "Phone is required"),
+});
+
+function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: (customer: any) => void }) {
+  const [open, setOpen] = useState(false);
+  const form = useForm({
+    resolver: zodResolver(customerSchema),
+    defaultValues: { name: "", phone: "" },
+  });
+
+  const onSubmit = (values: z.infer<typeof customerSchema>) => {
+    const newCustomer = {
+      id: `CUS${String(initialCustomers.length + 1).padStart(3, '0')}`,
+      name: values.name,
+      phone: values.phone,
+      totalOrders: 0,
+      totalSpent: '$0.00'
+    };
+    onCustomerAdded(newCustomer);
+    form.reset();
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Customer
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add a new customer</DialogTitle>
+          <DialogDescription>
+            Enter the details of the new customer below.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="John Doe" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input placeholder="555-1234" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">Add Customer</Button>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 export default function CustomersPage() {
+    const [customers, setCustomers] = useState(initialCustomers);
+
+    const handleAddCustomer = (customer: any) => {
+        setCustomers(prev => [...prev, customer]);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Customers</h1>
-                <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Customer
-                </Button>
+                <AddCustomerForm onCustomerAdded={handleAddCustomer} />
             </div>
             <Card>
                 <CardHeader>

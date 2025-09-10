@@ -47,10 +47,10 @@ export function RecentOrdersTable({ orders, onUpdateOrder }: { orders: Order[], 
             <TableBody>
                 {orders.map((order) => (
                     <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell className="font-medium">{order.id.substring(0,7)}</TableCell>
                         <TableCell>{order.customer}</TableCell>
                         <TableCell className="max-w-xs truncate">{order.product}</TableCell>
-                        <TableCell>{order.date}</TableCell>
+                        <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
                         <TableCell>{order.total}</TableCell>
                         <TableCell>
                            <Select value={order.status} onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}>

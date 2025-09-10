@@ -4,7 +4,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, Package, ShoppingCart, Users, Loader2 } from 'lucide-react';
-import { RecentOrdersTable } from '../(auth)/RecentOrdersTable';
+import { RecentOrdersTable } from './RecentOrdersTable';
 import { useBusinessData } from '@/hooks/use-business-data';
 import { Skeleton } from '@/components/ui/skeleton';
 

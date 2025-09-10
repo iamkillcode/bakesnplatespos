@@ -37,11 +37,13 @@ export type InventoryItem = {
 
 const seedDatabase = async () => {
     const batch = writeBatch(db);
+    let dirty = false;
 
     // Seed Products
     const productsCollection = collection(db, 'products');
     const productsSnapshot = await getDocs(productsCollection);
     if (productsSnapshot.empty) {
+        dirty = true;
         const initialProducts = [
             { name: 'Bento Cake', price: 65.00 },
             { name: 'Cupcakes (2)', price: 40.00 },
@@ -73,6 +75,7 @@ const seedDatabase = async () => {
     const customersCollection = collection(db, 'customers');
     const customersSnapshot = await getDocs(customersCollection);
     if (customersSnapshot.empty) {
+        dirty = true;
         const initialCustomers = [
             { name: 'Ama Serwaa', phone: '024-123-4567' },
             { name: 'Kofi Mensah', phone: '055-987-6543' },
@@ -89,6 +92,7 @@ const seedDatabase = async () => {
     const inventoryCollection = collection(db, 'inventory');
     const inventorySnapshot = await getDocs(inventoryCollection);
     if(inventorySnapshot.empty) {
+        dirty = true;
         const initialInventory = [
             { name: 'Flour', stock: '50 kg', reorder: '10 kg', status: 'In Stock' },
             { name: 'Sugar', stock: '25 kg', reorder: '5 kg', status: 'In Stock' },
@@ -107,7 +111,8 @@ const seedDatabase = async () => {
     // Seed Orders (only if products and customers were also seeded)
     const ordersCollection = collection(db, 'orders');
     const ordersSnapshot = await getDocs(ordersCollection);
-    if (productsSnapshot.empty && customersSnapshot.empty && ordersSnapshot.empty) {
+    if (ordersSnapshot.empty) {
+        dirty = true;
         const initialOrders = [
             { customer: 'Ama Serwaa', product: 'Bento Cake (x1)', total: 'GH₵65.00', status: 'Completed', date: format(new Date(2024, 4, 1, 10, 30), 'yyyy-MM-dd HH:mm:ss') },
             { customer: 'Kofi Mensah', product: 'Doughnuts (6) (x1)', total: 'GH₵80.00', status: 'Pending', date: format(new Date(2024, 4, 2, 14, 0), 'yyyy-MM-dd HH:mm:ss') },
@@ -120,9 +125,13 @@ const seedDatabase = async () => {
         console.log('Seeding orders...');
     }
 
-
-    await batch.commit();
-    console.log('Database seeding check complete.');
+    if (dirty) {
+        await batch.commit();
+        console.log('Database seeding committed.');
+        return true;
+    }
+    console.log('Database seeding check complete. No new data seeded.');
+    return false;
 };
 
 
@@ -136,19 +145,23 @@ export function useBusinessData() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            await seedDatabase();
+            const seeded = await seedDatabase();
+            // If we seeded, we need a brief moment for writes to propagate before reading.
+            if (seeded) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
 
-            const productsCollection = await getDocs(collection(db, 'products'));
+            const productsCollection = await getDocs(query(collection(db, 'products'), orderBy('name')));
             setProducts(productsCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
 
-            const customersCollection = await getDocs(collection(db, 'customers'));
+            const customersCollection = await getDocs(query(collection(db, 'customers'), orderBy('name')));
             setCustomers(customersCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as Customer)));
 
             const ordersQuery = query(collection(db, 'orders'), orderBy('date', 'desc'));
             const ordersCollection = await getDocs(ordersQuery);
             setOrders(ordersCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as Order)));
 
-            const inventoryCollection = await getDocs(collection(db, 'inventory'));
+            const inventoryCollection = await getDocs(query(collection(db, 'inventory'), orderBy('name')));
             setInventory(inventoryCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
         } catch (error) {
             console.error("Error fetching data: ", error);
@@ -163,16 +176,14 @@ export function useBusinessData() {
 
     const addProduct = async (product: Omit<Product, 'id'>) => {
         const docRef = await addDoc(collection(db, "products"), product);
-        const newProduct = { ...product, id: docRef.id };
-        setProducts(prev => [...prev, newProduct]);
-        return newProduct;
+        await fetchData(); // Refetch to get sorted list
+        return { ...product, id: docRef.id };
     };
 
     const addCustomer = async (customer: Omit<Customer, 'id'>) => {
         const docRef = await addDoc(collection(db, "customers"), customer);
-        const newCustomer = { ...customer, id: docRef.id };
-        setCustomers(prev => [...prev, newCustomer]);
-        return newCustomer;
+        await fetchData(); // Refetch to get sorted list
+        return { ...customer, id: docRef.id };
     };
 
     const addOrder = async (order: Omit<Order, 'id' | 'date'>) => {
@@ -181,16 +192,14 @@ export function useBusinessData() {
             date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
         };
         const docRef = await addDoc(collection(db, "orders"), newOrderData);
-        const newOrder = { ...newOrderData, id: docRef.id };
-        setOrders(prev => [newOrder, ...prev]);
-        return newOrder;
+        await fetchData(); // Refetch to get sorted list
+        return { ...newOrderData, id: docRef.id };
     };
 
     const addInventoryItem = async (item: Omit<InventoryItem, 'id'>) => {
         const docRef = await addDoc(collection(db, "inventory"), item);
-        const newItem = { ...item, id: docRef.id };
-        setInventory(prev => [...prev, newItem]);
-        return newItem;
+        await fetchData(); // Refetch to get sorted list
+        return { ...item, id: docRef.id };
     };
 
     const updateOrderStatus = async (orderId: string, newStatus: string) => {

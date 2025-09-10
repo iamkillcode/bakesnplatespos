@@ -65,6 +65,8 @@ function ProfileForm() {
             lastName: user?.lastName || '',
         },
     });
+    
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -76,7 +78,9 @@ function ProfileForm() {
     }, [user, form]);
     
     const onSubmit = async (data: ProfileFormValues) => {
+        setIsSubmitting(true);
         await updateUserProfile(data);
+        setIsSubmitting(false);
     };
 
     return (
@@ -121,8 +125,8 @@ function ProfileForm() {
                     </div>
                 </CardContent>
                 <CardFooter className="border-t px-6 py-4">
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Save
                     </Button>
                 </CardFooter>

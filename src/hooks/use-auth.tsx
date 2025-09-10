@@ -39,7 +39,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
-  const fetchAppUserData = useCallback(async (firebaseUser: User) => {
+  const fetchAppUserData = useCallback(async (firebaseUser: User | null) => {
+    if (!firebaseUser) {
+        setUser(null);
+        setLoading(false);
+        return;
+    }
     const userDocRef = doc(db, "users", firebaseUser.uid);
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
@@ -55,24 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Default to 'staff' if no role document is found
         const defaultUserData = { 
             role: 'staff',
+            email: firebaseUser.email,
             firstName: '',
             lastName: '',
             avatarUrl: '',
         };
         await setDoc(userDocRef, defaultUserData, { merge: true });
         setUser({ ...firebaseUser, ...defaultUserData } as AppUser);
-        console.warn(`No role document found for user ${firebaseUser.uid}. Defaulting to 'staff'.`);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        await fetchAppUserData(firebaseUser);
-      } else {
-        setUser(null);
-      }
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        setLoading(true);
+        fetchAppUserData(firebaseUser);
     });
     return () => unsubscribe();
   }, [fetchAppUserData]);
@@ -85,10 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true;
     } catch (e: any) {
       setError(e.message);
+      setLoading(false);
       return false;
-    } finally {
-      // The onAuthStateChanged listener will handle setting the user state.
-    }
+    } 
   };
 
   const logout = async () => {
@@ -110,8 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
         const userDocRef = doc(db, 'users', currentUser.uid);
         await updateDoc(userDocRef, data);
-        
-        await fetchAppUserData(currentUser); // Refetch to get all updated data
+        await fetchAppUserData(currentUser); 
         toast({ title: 'Success', description: 'Profile updated successfully.' });
     } catch (error) {
         console.error("Error updating user profile:", error);

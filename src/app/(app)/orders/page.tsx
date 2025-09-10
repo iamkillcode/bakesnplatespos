@@ -4,51 +4,27 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Trash2 } from "lucide-react";
 import { RecentOrdersTable } from "../RecentOrdersTable";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-const initialCustomers = [
-    { id: 'CUS001', name: 'John Doe' },
-    { id: 'CUS002', name: 'Jane Smith' },
-    { id: 'CUS003', name: 'Bob Johnson' },
-];
-
-const initialProducts = [
-    { id: 'PROD001', name: 'Bento Cake', price: 150.00 },
-    { id: 'PROD002', name: 'Cupcakes (2)', price: 30.00 },
-    { id: 'PROD003', name: 'Cupcakes (4)', price: 55.00 },
-    { id: 'PROD004', name: 'Cupcakes (8)', price: 100.00 },
-    { id: 'PROD005', name: 'Cupcakes (12)', price: 140.00 },
-    { id: 'PROD006', name: '6" Cake', price: 250.00 },
-    { id: 'PROD007', name: '8" Cake', price: 350.00 },
-    { id: 'PROD008', name: '10" Cake', price: 450.00 },
-    { id: 'PROD009', name: '12" Cake', price: 550.00 },
-    { id: 'PROD010', name: 'Doughnuts (2)', price: 25.00 },
-    { id: 'PROD011', name: 'Doughnuts (4)', price: 45.00 },
-    { id: 'PROD012', name: 'Doughnuts (6)', price: 65.00 },
-    { id: 'PROD013', name: 'Doughnuts (8)', price: 85.00 },
-    { id: 'PROD014', name: 'Doughnuts (10)', price: 100.00 },
-    { id: 'PROD015', name: 'Doughnuts (12)', price: 120.00 },
-    { id: 'PROD016', name: 'Sausage Roll', price: 15.00 },
-    { id: 'PROD017', name: 'Sobolo Juice', price: 20.00 },
-    { id: 'PROD018', name: 'Fruit Juice', price: 25.00 },
-];
-
+import { useBusinessData } from '@/hooks/use-business-data';
 
 const ADD_NEW_CUSTOMER_VALUE = 'add_new_customer';
 
 const orderSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   newCustomerName: z.string().optional(),
-  productId: z.string().min(1, "Product is required"),
+  products: z.array(z.object({
+    productId: z.string().min(1, "Product is required"),
+    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+  })).min(1, "At least one product is required"),
   adjustment: z.coerce.number().default(0),
   status: z.enum(['Completed', 'Pending', 'In Progress', 'Cancelled']),
 }).refine(data => {
@@ -61,54 +37,71 @@ const orderSchema = z.object({
     path: ["newCustomerName"],
 });
 
+type OrderFormValues = z.infer<typeof orderSchema>;
 
-function NewOrderForm({ customers: customersProp, products: productsProp, onOrderAdded, onCustomerAdded }: { customers: any[], products: any[], onOrderAdded: (order: any) => void, onCustomerAdded: (customer: any) => void }) {
+function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
   const [open, setOpen] = useState(false);
-  const form = useForm<z.infer<typeof orderSchema>>({
+  const { customers, products, addCustomer, addOrder } = useBusinessData();
+  
+  const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { customerId: "", newCustomerName: "", productId: "", adjustment: 0, status: "Pending" },
+    defaultValues: { 
+        customerId: "", 
+        newCustomerName: "", 
+        products: [{ productId: '', quantity: 1 }], 
+        adjustment: 0, 
+        status: "Pending" 
+    },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "products",
   });
 
   const customerId = form.watch("customerId");
-  const productId = form.watch("productId");
+  const formProducts = form.watch("products");
   const adjustment = form.watch("adjustment");
 
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const selectedProduct = productsProp.find(p => p.id === productId);
-    const productPrice = selectedProduct?.price || 0;
-    const newTotal = productPrice + adjustment;
+    const subtotal = formProducts.reduce((acc, item) => {
+        const selectedProduct = products.find(p => p.id === item.productId);
+        const price = selectedProduct?.price || 0;
+        return acc + (price * (item.quantity || 1));
+    }, 0);
+    const newTotal = subtotal + adjustment;
     setTotal(newTotal);
-  }, [productId, adjustment, productsProp]);
+  }, [formProducts, adjustment, products]);
 
-
-  const onSubmit = (values: z.infer<typeof orderSchema>) => {
+  const onSubmit = (values: OrderFormValues) => {
     let customerName = "";
+    let custId = values.customerId;
+
     if (values.customerId === ADD_NEW_CUSTOMER_VALUE) {
         customerName = values.newCustomerName!;
-        const newCustomer = {
-          id: `CUS${String(customersProp.length + 1).padStart(3, '0')}`,
-          name: customerName,
-        };
-        onCustomerAdded(newCustomer);
+        const newCustomer = addCustomer({ name: customerName, phone: 'N/A' });
+        custId = newCustomer.id;
+        customerName = newCustomer.name;
     } else {
-        const existingCustomer = customersProp.find(c => c.id === values.customerId);
+        const existingCustomer = customers.find(c => c.id === values.customerId);
         customerName = existingCustomer?.name || 'Unknown';
     }
 
-    const selectedProduct = productsProp.find(p => p.id === values.productId);
+    const productDetails = values.products.map(p => {
+        const productInfo = products.find(prod => prod.id === p.productId);
+        return `${productInfo?.name} (x${p.quantity})`;
+    }).join(', ');
 
-    const newOrder = {
-      id: `ORD${String(Math.floor(Math.random() * 900) + 100)}`,
-      customer: customerName,
-      product: selectedProduct?.name || 'N/A',
-      date: format(new Date(), 'yyyy-MM-dd'),
-      total: `GH₵${total.toFixed(2)}`,
-      status: values.status,
-    };
+    addOrder({
+        customer: customerName,
+        product: productDetails,
+        total: `GH₵${total.toFixed(2)}`,
+        status: values.status,
+    });
 
-    onOrderAdded(newOrder);
+    onOrderAdded();
     form.reset();
     setOpen(false);
   };
@@ -121,11 +114,11 @@ function NewOrderForm({ customers: customersProp, products: productsProp, onOrde
           New Order
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create a New Order</DialogTitle>
           <DialogDescription>
-            Select a product and customer to create a new order.
+            Select products and a customer to create a new order.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -143,7 +136,7 @@ function NewOrderForm({ customers: customersProp, products: productsProp, onOrde
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {customersProp.map(customer => (
+                      {customers.map(customer => (
                         <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                       ))}
                       <SelectItem value={ADD_NEW_CUSTOMER_VALUE}>
@@ -175,28 +168,57 @@ function NewOrderForm({ customers: customersProp, products: productsProp, onOrde
                  />
             )}
             
-            <FormField
-              control={form.control}
-              name="productId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Product</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a product" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {productsProp.map(product => (
-                        <SelectItem key={product.id} value={product.id}>{product.name} (GH₵{product.price.toFixed(2)})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div>
+              <FormLabel>Products</FormLabel>
+              <div className="space-y-2 pt-2">
+                {fields.map((item, index) => (
+                   <div key={item.id} className="flex gap-2 items-end">
+                      <FormField
+                          control={form.control}
+                          name={`products.${index}.productId`}
+                          render={({ field }) => (
+                              <FormItem className="flex-1">
+                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                      <FormControl>
+                                          <SelectTrigger>
+                                              <SelectValue placeholder="Select a product" />
+                                          </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                          {products.map(product => (
+                                              <SelectItem key={product.id} value={product.id}>
+                                                  {product.name} (GH₵{product.price.toFixed(2)})
+                                              </SelectItem>
+                                          ))}
+                                      </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                      />
+                       <FormField
+                          control={form.control}
+                          name={`products.${index}.quantity`}
+                          render={({ field }) => (
+                              <FormItem className="w-24">
+                                  <FormControl>
+                                      <Input type="number" placeholder="Qty" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                              </FormItem>
+                          )}
+                       />
+                       <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length === 1}>
+                           <Trash2 className="h-4 w-4" />
+                       </Button>
+                   </div>
+                ))}
+              </div>
+               <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ productId: '', quantity: 1 })}>
+                   <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+               </Button>
+            </div>
+
 
             <FormField
               control={form.control}
@@ -249,44 +271,26 @@ function NewOrderForm({ customers: customersProp, products: productsProp, onOrde
 
 
 export default function OrdersPage() {
-    const [orders, setOrders] = useState([
-        { id: 'ORD001', customer: 'John Doe', product: 'Bento Cake', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
-        { id: 'ORD002', customer: 'Jane Smith', product: 'Cupcakes (4)', date: '2023-11-21', total: 'GH₵55.00', status: 'Pending' },
-        { id: 'ORD003', customer: 'Bob Johnson', product: '8" Cake', date: '2023-11-21', total: 'GH₵350.00', status: 'In Progress' },
-    ]);
-    
-    // In a real app, this would be shared state or fetched from a service
-    const [customers, setCustomers] = useState(initialCustomers);
-    const [products, setProducts] = useState(initialProducts);
-    
-    const handleAddOrder = (order: any) => {
-        setOrders(prev => [order, ...prev]);
-    };
+    const { orders, updateOrderStatus } = useBusinessData();
+    // Local state to trigger re-renders
+    const [version, setVersion] = useState(0);
 
-    const handleAddCustomer = (customer: any) => {
-        setCustomers(prev => [...prev, customer]);
-    };
-
-    const handleUpdateOrder = (orderId: string, newStatus: string) => {
-        setOrders(currentOrders =>
-            currentOrders.map(order =>
-                order.id === orderId ? { ...order, status: newStatus } : order
-            )
-        );
+    const handleOrderDataChanged = () => {
+        setVersion(v => v + 1);
     };
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Orders</h1>
-                <NewOrderForm customers={customers} products={products} onOrderAdded={handleAddOrder} onCustomerAdded={handleAddCustomer} />
+                <NewOrderForm onOrderAdded={handleOrderDataChanged} />
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>All Orders</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <RecentOrdersTable orders={orders} onUpdateOrder={handleUpdateOrder} />
+                    <RecentOrdersTable orders={orders} onUpdateOrder={updateOrderStatus} />
                 </CardContent>
             </Card>
         </div>

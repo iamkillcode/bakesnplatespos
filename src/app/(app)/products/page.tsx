@@ -12,47 +12,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useBusinessData } from "@/hooks/use-business-data";
 
-const initialProducts = [
-    { id: 'PROD001', name: 'Bento Cake', price: 150.00 },
-    { id: 'PROD002', name: 'Cupcakes (2)', price: 30.00 },
-    { id: 'PROD003', name: 'Cupcakes (4)', price: 55.00 },
-    { id: 'PROD004', name: 'Cupcakes (8)', price: 100.00 },
-    { id: 'PROD005', name: 'Cupcakes (12)', price: 140.00 },
-    { id: 'PROD006', name: '6" Cake', price: 250.00 },
-    { id: 'PROD007', name: '8" Cake', price: 350.00 },
-    { id: 'PROD008', name: '10" Cake', price: 450.00 },
-    { id: 'PROD009', name: '12" Cake', price: 550.00 },
-    { id: 'PROD010', name: 'Doughnuts (2)', price: 25.00 },
-    { id: 'PROD011', name: 'Doughnuts (4)', price: 45.00 },
-    { id: 'PROD012', name: 'Doughnuts (6)', price: 65.00 },
-    { id: 'PROD013', name: 'Doughnuts (8)', price: 85.00 },
-    { id: 'PROD014', name: 'Doughnuts (10)', price: 100.00 },
-    { id: 'PROD015', name: 'Doughnuts (12)', price: 120.00 },
-    { id: 'PROD016', name: 'Sausage Roll', price: 15.00 },
-    { id: 'PROD017', name: 'Sobolo Juice', price: 20.00 },
-    { id: 'PROD018', name: 'Fruit Juice', price: 25.00 },
-];
 
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   price: z.coerce.number().min(0.01, "Price must be a positive number"),
 });
 
-function AddProductForm({ onProductAdded }: { onProductAdded: (product: any) => void }) {
+function AddProductForm({ onProductAdded }: { onProductAdded: () => void }) {
   const [open, setOpen] = useState(false);
+  const { addProduct } = useBusinessData();
   const form = useForm({
     resolver: zodResolver(productSchema),
     defaultValues: { name: "", price: 0 },
   });
 
   const onSubmit = (values: z.infer<typeof productSchema>) => {
-    const newProduct = {
-      id: `PROD${String(initialProducts.length + 1).padStart(3, '0')}`,
-      name: values.name,
-      price: values.price,
-    };
-    onProductAdded(newProduct);
+    addProduct(values);
+    onProductAdded();
     form.reset();
     setOpen(false);
   };
@@ -110,17 +88,14 @@ function AddProductForm({ onProductAdded }: { onProductAdded: (product: any) => 
 
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState(initialProducts);
-
-    const handleAddProduct = (product: any) => {
-        setProducts(prev => [...prev, product]);
-    };
+    const { products } = useBusinessData();
+    const [version, setVersion] = useState(0);
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Products</h1>
-                <AddProductForm onProductAdded={handleAddProduct} />
+                <AddProductForm onProductAdded={() => setVersion(v => v+1)} />
             </div>
             <Card>
                 <CardHeader>

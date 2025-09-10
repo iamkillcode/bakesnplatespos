@@ -12,36 +12,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-
-const initialCustomers = [
-    { id: 'CUS001', name: 'John Doe', phone: '555-0101', totalOrders: 5, totalSpent: 'GH₵450.20' },
-    { id: 'CUS002', name: 'Jane Smith', phone: '555-0102', totalOrders: 2, totalSpent: 'GH₵95.50' },
-    { id: 'CUS003', name: 'Bob Johnson', phone: '555-0103', totalOrders: 8, totalSpent: 'GH₵1205.00' },
-    { id: 'CUS004', name: 'Alice Williams', phone: '555-0104', totalOrders: 12, totalSpent: 'GH₵780.25' },
-    { id: 'CUS005', name: 'Charlie Brown', phone: '555-0105', totalOrders: 1, totalSpent: 'GH₵99.99' },
-];
+import { useBusinessData } from "@/hooks/use-business-data";
 
 const customerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(1, "Phone is required"),
 });
 
-function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: (customer: any) => void }) {
+function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: () => void }) {
   const [open, setOpen] = useState(false);
+  const { addCustomer } = useBusinessData();
   const form = useForm({
     resolver: zodResolver(customerSchema),
     defaultValues: { name: "", phone: "" },
   });
 
   const onSubmit = (values: z.infer<typeof customerSchema>) => {
-    const newCustomer = {
-      id: `CUS${String(initialCustomers.length + 1).padStart(3, '0')}`,
-      name: values.name,
-      phone: values.phone,
-      totalOrders: 0,
-      totalSpent: 'GH₵0.00'
-    };
-    onCustomerAdded(newCustomer);
+    addCustomer(values);
+    onCustomerAdded();
     form.reset();
     setOpen(false);
   };
@@ -99,17 +87,26 @@ function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: (customer: any)
 
 
 export default function CustomersPage() {
-    const [customers, setCustomers] = useState(initialCustomers);
+    const { customers, orders } = useBusinessData();
+    const [version, setVersion] = useState(0);
 
-    const handleAddCustomer = (customer: any) => {
-        setCustomers(prev => [...prev, customer]);
-    };
+    const getCustomerStats = (customerName: string) => {
+        const customerOrders = orders.filter(o => o.customer === customerName);
+        const totalOrders = customerOrders.length;
+        const totalSpent = customerOrders.reduce((sum, order) => {
+            return sum + parseFloat(order.total.replace('GH₵', ''));
+        }, 0);
+        return {
+            totalOrders,
+            totalSpent: `GH₵${totalSpent.toFixed(2)}`
+        }
+    }
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Customers</h1>
-                <AddCustomerForm onCustomerAdded={handleAddCustomer} />
+                <AddCustomerForm onCustomerAdded={() => setVersion(v => v + 1)} />
             </div>
             <Card>
                 <CardHeader>
@@ -126,14 +123,17 @@ export default function CustomersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {customers.map((customer) => (
-                                <TableRow key={customer.id}>
-                                    <TableCell className="font-medium">{customer.name}</TableCell>
-                                    <TableCell>{customer.phone}</TableCell>
-                                    <TableCell>{customer.totalOrders}</TableCell>
-                                    <TableCell>{customer.totalSpent}</TableCell>
-                                </TableRow>
-                            ))}
+                            {customers.map((customer) => {
+                                const stats = getCustomerStats(customer.name);
+                                return (
+                                    <TableRow key={customer.id}>
+                                        <TableCell className="font-medium">{customer.name}</TableCell>
+                                        <TableCell>{customer.phone}</TableCell>
+                                        <TableCell>{stats.totalOrders}</TableCell>
+                                        <TableCell>{stats.totalSpent}</TableCell>
+                                    </TableRow>
+                                )
+                            })}
                         </TableBody>
                     </Table>
                 </CardContent>

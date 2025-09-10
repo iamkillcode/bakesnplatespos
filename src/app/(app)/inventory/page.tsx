@@ -14,14 +14,8 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useBusinessData } from "@/hooks/use-business-data";
 
-const initialInventoryItems = [
-    { id: 'INV001', name: 'All-Purpose Flour', stock: '50 kg', reorder: '20 kg', status: 'In Stock' },
-    { id: 'INV002', name: 'Granulated Sugar', stock: '15 kg', reorder: '10 kg', status: 'Low Stock' },
-    { id: 'INV003', name: 'Unsalted Butter', stock: '25 kg', reorder: '5 kg', status: 'In Stock' },
-    { id: 'INV004', name: 'Large Eggs', stock: '10 dozen', reorder: '12 dozen', status: 'Low Stock' },
-    { id: 'INV005', name: 'Cake Boxes (10")', stock: '8 units', reorder: '50 units', status: 'Out of Stock' },
-];
 
 function getStatusVariant(status: string) {
     switch (status) {
@@ -39,19 +33,17 @@ const inventorySchema = z.object({
   status: z.enum(['In Stock', 'Low Stock', 'Out of Stock']),
 });
 
-function AddInventoryItemForm({ onIteAdded }: { onItemAdded: (item: any) => void }) {
+function AddInventoryItemForm({ onItemAdded }: { onItemAdded: () => void }) {
   const [open, setOpen] = useState(false);
+  const { addInventoryItem } = useBusinessData();
   const form = useForm({
     resolver: zodResolver(inventorySchema),
     defaultValues: { name: "", stock: "", reorder: "", status: "In Stock" },
   });
 
   const onSubmit = (values: z.infer<typeof inventorySchema>) => {
-    const newItem = {
-      id: `INV${String(initialInventoryItems.length + 1).padStart(3, '0')}`,
-      ...values,
-    };
-    onItemAdded(newItem);
+    addInventoryItem(values);
+    onItemAdded();
     form.reset();
     setOpen(false);
   };
@@ -144,17 +136,14 @@ function AddInventoryItemForm({ onIteAdded }: { onItemAdded: (item: any) => void
 
 
 export default function InventoryPage() {
-    const [inventoryItems, setInventoryItems] = useState(initialInventoryItems);
-
-    const handleAddItem = (item: any) => {
-        setInventoryItems(prev => [...prev, item]);
-    };
+    const { inventory } = useBusinessData();
+    const [version, setVersion] = useState(0);
     
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Inventory</h1>
-                <AddInventoryItemForm onItemAdded={handleAddItem} />
+                <AddInventoryItemForm onItemAdded={() => setVersion(v => v + 1)} />
             </div>
             <Card>
                 <CardHeader>
@@ -171,7 +160,7 @@ export default function InventoryPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {inventoryItems.map((item) => (
+                            {inventory.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{item.name}</TableCell>
                                     <TableCell>{item.stock}</TableCell>

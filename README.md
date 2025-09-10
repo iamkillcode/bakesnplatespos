@@ -2,7 +2,6 @@
 
 BakesNPlates is a comprehensive bakery management system built with Next.js, Firebase, and Tailwind CSS. It provides a point-of-sale (POS) interface, order management, inventory tracking, customer relationship management, and AI-powered business analytics.
 
-This project was bootstrapped with [Firebase Studio](https://firebase.google.com/docs/studio).
 
 ## Tech Stack
 

@@ -149,7 +149,7 @@ function AvatarUploader() {
         }
     };
     
-    const displayName = user?.firstName && user?.lastName ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : user?.email?.charAt(0).toUpperCase();
+    const fallback = user?.firstName && user?.lastName ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : (user?.email?.charAt(0).toUpperCase() || 'S');
 
     return (
         <div className="flex items-center gap-4">
@@ -171,7 +171,7 @@ function AvatarUploader() {
                         src={user?.avatarUrl}
                         alt="User"
                     />
-                    <AvatarFallback className="text-3xl">{displayName}</AvatarFallback>
+                    <AvatarFallback className="text-3xl">{fallback}</AvatarFallback>
                 </Avatar>
                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     {isUploading ? (

@@ -206,7 +206,7 @@ function UserMenu() {
     const { user, logout } = useAuth();
     
     const displayName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff');
-    const fallback = user?.firstName && user?.lastName ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : user?.email?.charAt(0).toUpperCase();
+    const fallback = user?.firstName && user?.lastName ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : (user?.email?.charAt(0).toUpperCase() || 'S');
 
     return (
         <DropdownMenu>

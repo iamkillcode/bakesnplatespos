@@ -56,7 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } as AppUser);
         } else {
             // Default to 'staff' if no role document is found
-            setUser({ ...firebaseUser, role: 'staff' } as AppUser);
+            const defaultUserData = { 
+                role: 'staff',
+                firstName: '',
+                lastName: '',
+                avatarUrl: '',
+            };
+            await setDoc(userDocRef, defaultUserData, { merge: true });
+            setUser({ ...firebaseUser, ...defaultUserData } as AppUser);
             console.warn(`No role document found for user ${firebaseUser.uid}. Defaulting to 'staff'.`);
         }
       } else {

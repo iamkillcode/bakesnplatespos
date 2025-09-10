@@ -213,7 +213,7 @@ function UserMenu() {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src={user?.avatarUrl} alt="User" />
+                        <AvatarImage key={user?.avatarUrl} src={user?.avatarUrl} alt="User" />
                         <AvatarFallback>{fallback}</AvatarFallback>
                     </Avatar>
                 </Button>

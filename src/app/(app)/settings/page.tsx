@@ -168,6 +168,7 @@ function AvatarUploader() {
             >
                 <Avatar className="h-24 w-24">
                     <AvatarImage
+                        key={user?.avatarUrl}
                         src={user?.avatarUrl}
                         alt="User"
                     />

@@ -104,16 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const updateUserProfile = useCallback(async (data: {firstName: string, lastName: string}) => {
-    if (!user) return;
     const currentUser = auth.currentUser;
     if (!currentUser) return;
 
     try {
-        const userDocRef = doc(db, 'users', user.uid);
-        await setDoc(userDocRef, { 
-            firstName: data.firstName,
-            lastName: data.lastName
-        }, { merge: true });
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userDocRef, data);
         
         await fetchAppUserData(currentUser); // Refetch to get all updated data
         toast({ title: 'Success', description: 'Profile updated successfully.' });
@@ -121,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error updating user profile:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
     }
-  }, [user, toast, fetchAppUserData]);
+  }, [toast, fetchAppUserData]);
   
   const uploadAvatar = useCallback(async (file: File) => {
     const currentUser = auth.currentUser;

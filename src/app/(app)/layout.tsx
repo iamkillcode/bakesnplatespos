@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Link from 'next/link';
 import {
@@ -108,7 +109,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b bg-background/50 backdrop-blur-sm px-6 sticky top-0 z-10">
+        <header className="flex h-16 items-center justify-between border-b bg-background/50 backdrop-blur-sm px-4 md:px-6 sticky top-0 z-10">
           <SidebarTrigger />
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon">
@@ -118,7 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <UserMenu />
           </div>
         </header>
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
       </SidebarInset>

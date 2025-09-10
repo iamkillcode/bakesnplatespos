@@ -192,10 +192,10 @@ export default function POSPage() {
     };
 
     return (
-        <div className="grid md:grid-cols-3 gap-6 h-full">
-            <div className="md:col-span-2">
+        <div className="grid lg:grid-cols-3 gap-6 h-full">
+            <div className="lg:col-span-2">
                 <h1 className="text-3xl font-bold font-headline mb-6">Point of Sale</h1>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {productsWithImages.map(product => (
                         <Card key={product.name} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => addToOrder(product)}>
                             <div className="relative aspect-square w-full">
@@ -209,28 +209,28 @@ export default function POSPage() {
                     ))}
                 </div>
             </div>
-            <div className="md:col-span-1">
-                <Card className="sticky top-24">
+            <div className="lg:col-span-1">
+                <Card className="sticky top-20">
                     <CardHeader>
                         <CardTitle>Current Order</CardTitle>
                         <CardDescription>{orderItems.length} item(s)</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4 max-h-96 overflow-y-auto">
+                    <CardContent className="space-y-4 max-h-[50vh] lg:max-h-96 overflow-y-auto">
                         {orderItems.length === 0 ? (
                              <p className="text-muted-foreground text-center py-8">Click on a product to add it to the order.</p>
                         ) : (
                             orderItems.map(item => (
                                 <div key={item.name} className="flex justify-between items-center">
                                     <div>
-                                        <p className="font-medium">{item.name}</p>
-                                        <div className="flex items-center gap-2">
+                                        <p className="font-medium text-sm">{item.name}</p>
+                                        <div className="flex items-center gap-2 mt-1">
                                             <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.name, item.quantity - 1)}>-</Button>
                                             <span className="text-sm w-4 text-center">{item.quantity}</span>
                                             <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.name, item.quantity + 1)}>+</Button>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span>GH₵{(item.price * item.quantity).toFixed(2)}</span>
+                                        <span className="text-sm">GH₵{(item.price * item.quantity).toFixed(2)}</span>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFromOrder(item.name)}>
                                             <X className="h-4 w-4 text-destructive" />
                                         </Button>

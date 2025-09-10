@@ -7,7 +7,7 @@ import { RecentOrdersTable } from './RecentOrdersTable';
 import { useBusinessData } from '@/hooks/use-business-data';
 
 export default function DashboardPage() {
-  const { orders, customers, inventory } = useBusinessData();
+  const { orders, customers, inventory, updateOrderStatus } = useBusinessData();
 
   const totalRevenue = orders
     .filter(o => o.status === 'Completed')
@@ -19,7 +19,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Dashboard</h1>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -47,7 +47,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lowStockItems}</div>
-            <p className="text-xs text-muted-foreground">Items needing reorder</p>
+            <p className="text-xs text-muted-foreground">Items needing reorder</p>d
           </CardContent>
         </Card>
         <Card>
@@ -67,7 +67,7 @@ export default function DashboardPage() {
           <CardTitle>Recent Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecentOrdersTable orders={orders.slice(0, 5)} onUpdateOrder={() => {}} />
+          <RecentOrdersTable orders={orders.slice(0, 5)} onUpdateOrder={updateOrderStatus} />
         </CardContent>
       </Card>
     </div>

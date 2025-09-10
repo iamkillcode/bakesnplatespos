@@ -114,7 +114,7 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
           New Order
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="sm:max-w-xl md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Create a New Order</DialogTitle>
           <DialogDescription>
@@ -122,7 +122,7 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[80vh] overflow-y-auto p-1">
             <FormField
               control={form.control}
               name="customerId"
@@ -172,12 +172,13 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
               <FormLabel>Products</FormLabel>
               <div className="space-y-2 pt-2">
                 {fields.map((item, index) => (
-                   <div key={item.id} className="flex gap-2 items-end">
+                   <div key={item.id} className="flex flex-col sm:flex-row gap-2 items-end">
                       <FormField
                           control={form.control}
                           name={`products.${index}.productId`}
                           render={({ field }) => (
-                              <FormItem className="flex-1">
+                              <FormItem className="flex-1 w-full">
+                                  <FormLabel className="sm:hidden text-xs">Product</FormLabel>
                                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                                       <FormControl>
                                           <SelectTrigger>
@@ -200,7 +201,8 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
                           control={form.control}
                           name={`products.${index}.quantity`}
                           render={({ field }) => (
-                              <FormItem className="w-24">
+                              <FormItem className="w-full sm:w-24">
+                                   <FormLabel className="sm:hidden text-xs">Quantity</FormLabel>
                                   <FormControl>
                                       <Input type="number" placeholder="Qty" {...field} />
                                   </FormControl>
@@ -208,8 +210,9 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
                               </FormItem>
                           )}
                        />
-                       <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length === 1}>
+                       <Button type="button" variant="destructive" size="icon" onClick={() => remove(index)} disabled={fields.length === 1} className="w-full sm:w-10">
                            <Trash2 className="h-4 w-4" />
+                            <span className="sm:hidden ml-2">Remove</span>
                        </Button>
                    </div>
                 ))}
@@ -281,7 +284,7 @@ export default function OrdersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold font-headline">Orders</h1>
                 <NewOrderForm onOrderAdded={handleOrderDataChanged} />
             </div>

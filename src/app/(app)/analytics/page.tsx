@@ -43,7 +43,7 @@ export default function AnalyticsPage() {
                 An AI-powered overview of your business performance. These metrics are calculated from your orders and expenses data to provide a clear picture of your financial health.
             </p>
 
-            <div className="grid gap-6 md:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 md:grid-cols-3">
                  <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>

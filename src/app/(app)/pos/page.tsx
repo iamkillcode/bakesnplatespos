@@ -49,7 +49,7 @@ function CheckoutDialog({ orderItems, total, onCheckout }: { orderItems: OrderIt
 
     const customerId = form.watch("customerId");
 
-    const onSubmit = async (values: z.infer<typeof checkoutSchema>>) => {
+    const onSubmit = async (values: z.infer<typeof checkoutSchema>) => {
         let customerName = "";
         if (values.customerId === ADD_NEW_CUSTOMER_VALUE) {
             customerName = values.newCustomerName!;

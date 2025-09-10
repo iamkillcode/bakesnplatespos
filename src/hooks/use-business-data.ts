@@ -1,9 +1,10 @@
 
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy, writeBatch, deleteDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 export type Product = {
@@ -176,13 +177,21 @@ export function useBusinessData() {
 
     const addProduct = async (product: Omit<Product, 'id'>) => {
         const docRef = await addDoc(collection(db, "products"), product);
-        await fetchData(); // Refetch to get sorted list
         return { ...product, id: docRef.id };
+    };
+
+    const updateProduct = async (productId: string, product: Omit<Product, 'id'>) => {
+        const productRef = doc(db, "products", productId);
+        await updateDoc(productRef, product);
+    };
+
+    const deleteProduct = async (productId: string) => {
+        const productRef = doc(db, "products", productId);
+        await deleteDoc(productRef);
     };
 
     const addCustomer = async (customer: Omit<Customer, 'id'>) => {
         const docRef = await addDoc(collection(db, "customers"), customer);
-        await fetchData(); // Refetch to get sorted list
         return { ...customer, id: docRef.id };
     };
 
@@ -192,13 +201,11 @@ export function useBusinessData() {
             date: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
         };
         const docRef = await addDoc(collection(db, "orders"), newOrderData);
-        await fetchData(); // Refetch to get sorted list
         return { ...newOrderData, id: docRef.id };
     };
 
     const addInventoryItem = async (item: Omit<InventoryItem, 'id'>) => {
         const docRef = await addDoc(collection(db, "inventory"), item);
-        await fetchData(); // Refetch to get sorted list
         return { ...item, id: docRef.id };
     };
 
@@ -212,5 +219,21 @@ export function useBusinessData() {
         );
     };
 
-    return { products, customers, orders, inventory, loading, addProduct, addCustomer, addOrder, addInventoryItem, updateOrderStatus, refetch: fetchData };
+    return { 
+        products, 
+        customers, 
+        orders, 
+        inventory, 
+        loading, 
+        addProduct,
+        updateProduct,
+        deleteProduct,
+        addCustomer, 
+        addOrder, 
+        addInventoryItem, 
+        updateOrderStatus, 
+        refetch: fetchData 
+    };
 }
+
+    

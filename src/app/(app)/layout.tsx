@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Users,
   PieChart,
+  ShoppingBasket,
 } from 'lucide-react';
 
 import {
@@ -52,6 +53,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/orders">
                   <ShoppingCart />
                   <span>Orders</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Products">
+                <Link href="/products">
+                  <ShoppingBasket />
+                  <span>Products</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

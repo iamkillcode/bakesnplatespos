@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
@@ -16,19 +16,40 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const initialCustomers = [
-    { id: 'CUS001', name: 'John Doe', phone: '555-0101', totalOrders: 5, totalSpent: 'GH₵450.20' },
-    { id: 'CUS002', name: 'Jane Smith', phone: '555-0102', totalOrders: 2, totalSpent: 'GH₵95.50' },
-    { id: 'CUS003', name: 'Bob Johnson', phone: '555-0103', totalOrders: 8, totalSpent: 'GH₵1205.00' },
-    { id: 'CUS004', name: 'Alice Williams', phone: '555-0104', totalOrders: 12, totalSpent: 'GH₵780.25' },
-    { id: 'CUS005', name: 'Charlie Brown', phone: '555-0105', totalOrders: 1, totalSpent: 'GH₵99.99' },
+    { id: 'CUS001', name: 'John Doe' },
+    { id: 'CUS002', name: 'Jane Smith' },
+    { id: 'CUS003', name: 'Bob Johnson' },
 ];
+
+const initialProducts = [
+    { id: 'PROD001', name: 'Bento Cake', price: 150.00 },
+    { id: 'PROD002', name: 'Cupcakes (2)', price: 30.00 },
+    { id: 'PROD003', name: 'Cupcakes (4)', price: 55.00 },
+    { id: 'PROD004', name: 'Cupcakes (8)', price: 100.00 },
+    { id: 'PROD005', name: 'Cupcakes (12)', price: 140.00 },
+    { id: 'PROD006', name: '6" Cake', price: 250.00 },
+    { id: 'PROD007', name: '8" Cake', price: 350.00 },
+    { id: 'PROD008', name: '10" Cake', price: 450.00 },
+    { id: 'PROD009', name: '12" Cake', price: 550.00 },
+    { id: 'PROD010', name: 'Doughnuts (2)', price: 25.00 },
+    { id: 'PROD011', name: 'Doughnuts (4)', price: 45.00 },
+    { id: 'PROD012', name: 'Doughnuts (6)', price: 65.00 },
+    { id: 'PROD013', name: 'Doughnuts (8)', price: 85.00 },
+    { id: 'PROD014', name: 'Doughnuts (10)', price: 100.00 },
+    { id: 'PROD015', name: 'Doughnuts (12)', price: 120.00 },
+    { id: 'PROD016', name: 'Sausage Roll', price: 15.00 },
+    { id: 'PROD017', name: 'Sobolo Juice', price: 20.00 },
+    { id: 'PROD018', name: 'Fruit Juice', price: 25.00 },
+];
+
 
 const ADD_NEW_CUSTOMER_VALUE = 'add_new_customer';
 
 const orderSchema = z.object({
   customerId: z.string().min(1, "Customer is required"),
   newCustomerName: z.string().optional(),
-  total: z.coerce.number().min(0.01, "Total must be a positive number"),
+  productId: z.string().min(1, "Product is required"),
+  adjustment: z.coerce.number().default(0),
   status: z.enum(['Completed', 'Pending', 'In Progress', 'Cancelled']),
 }).refine(data => {
     if (data.customerId === ADD_NEW_CUSTOMER_VALUE) {
@@ -41,39 +62,52 @@ const orderSchema = z.object({
 });
 
 
-function NewOrderForm({ customers: initialCustomers, onOrderAdded, onCustomerAdded }: { customers: any[], onOrderAdded: (order: any) => void, onCustomerAdded: (customer: any) => void }) {
+function NewOrderForm({ customers: customersProp, products: productsProp, onOrderAdded, onCustomerAdded }: { customers: any[], products: any[], onOrderAdded: (order: any) => void, onCustomerAdded: (customer: any) => void }) {
   const [open, setOpen] = useState(false);
   const form = useForm<z.infer<typeof orderSchema>>({
     resolver: zodResolver(orderSchema),
-    defaultValues: { customerId: "", newCustomerName: "", total: 0, status: "Pending" },
+    defaultValues: { customerId: "", newCustomerName: "", productId: "", adjustment: 0, status: "Pending" },
   });
 
   const customerId = form.watch("customerId");
+  const productId = form.watch("productId");
+  const adjustment = form.watch("adjustment");
+
+  const [total, setTotal] = useState(0);
+
+  useEffect(() => {
+    const selectedProduct = productsProp.find(p => p.id === productId);
+    const productPrice = selectedProduct?.price || 0;
+    const newTotal = productPrice + adjustment;
+    setTotal(newTotal);
+  }, [productId, adjustment, productsProp]);
+
 
   const onSubmit = (values: z.infer<typeof orderSchema>) => {
     let customerName = "";
     if (values.customerId === ADD_NEW_CUSTOMER_VALUE) {
         customerName = values.newCustomerName!;
         const newCustomer = {
-          id: `CUS${String(initialCustomers.length + 1).padStart(3, '0')}`,
+          id: `CUS${String(customersProp.length + 1).padStart(3, '0')}`,
           name: customerName,
-          phone: 'N/A',
-          totalOrders: 1,
-          totalSpent: `GH₵${values.total.toFixed(2)}`
         };
         onCustomerAdded(newCustomer);
     } else {
-        const existingCustomer = initialCustomers.find(c => c.id === values.customerId);
+        const existingCustomer = customersProp.find(c => c.id === values.customerId);
         customerName = existingCustomer?.name || 'Unknown';
     }
 
+    const selectedProduct = productsProp.find(p => p.id === values.productId);
+
     const newOrder = {
-      id: `ORD${String(Math.floor(Math.random() * 900) + 100).padStart(3, '0')}`,
+      id: `ORD${String(Math.floor(Math.random() * 900) + 100)}`,
       customer: customerName,
+      product: selectedProduct?.name || 'N/A',
       date: format(new Date(), 'yyyy-MM-dd'),
-      total: `GH₵${values.total.toFixed(2)}`,
+      total: `GH₵${total.toFixed(2)}`,
       status: values.status,
     };
+
     onOrderAdded(newOrder);
     form.reset();
     setOpen(false);
@@ -91,12 +125,12 @@ function NewOrderForm({ customers: initialCustomers, onOrderAdded, onCustomerAdd
         <DialogHeader>
           <DialogTitle>Create a New Order</DialogTitle>
           <DialogDescription>
-            Enter the details for the new order.
+            Select a product and customer to create a new order.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-             <FormField
+            <FormField
               control={form.control}
               name="customerId"
               render={({ field }) => (
@@ -109,7 +143,7 @@ function NewOrderForm({ customers: initialCustomers, onOrderAdded, onCustomerAdd
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {initialCustomers.map(customer => (
+                      {customersProp.map(customer => (
                         <SelectItem key={customer.id} value={customer.id}>{customer.name}</SelectItem>
                       ))}
                       <SelectItem value={ADD_NEW_CUSTOMER_VALUE}>
@@ -143,17 +177,45 @@ function NewOrderForm({ customers: initialCustomers, onOrderAdded, onCustomerAdd
             
             <FormField
               control={form.control}
-              name="total"
+              name="productId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total Amount</FormLabel>
+                  <FormLabel>Product</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a product" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {productsProp.map(product => (
+                        <SelectItem key={product.id} value={product.id}>{product.name} (GH₵{product.price.toFixed(2)})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="adjustment"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Discount (-ve) / Markup (+ve) in GH₵</FormLabel>
                   <FormControl>
-                    <Input type="number" placeholder="45.50" {...field} />
+                    <Input type="number" placeholder="e.g. -10 for discount, 5 for markup" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            <div className="font-bold text-lg">
+                Total: GH₵{total.toFixed(2)}
+            </div>
+
             <FormField
               control={form.control}
               name="status"
@@ -188,14 +250,14 @@ function NewOrderForm({ customers: initialCustomers, onOrderAdded, onCustomerAdd
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState([
-        { id: 'ORD001', customer: 'John Doe', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
-        { id: 'ORD002', customer: 'Jane Smith', date: '2023-11-21', total: 'GH₵45.50', status: 'Pending' },
-        { id: 'ORD003', customer: 'Bob Johnson', date: '2023-11-21', total: 'GH₵205.00', status: 'In Progress' },
-        { id: 'ORD004', customer: 'Alice Williams', date: '2023-11-22', total: 'GH₵78.25', status: 'Completed' },
-        { id: 'ORD005', customer: 'Charlie Brown', date: '2023-11-23', total: 'GH₵99.99', status: 'Cancelled' },
+        { id: 'ORD001', customer: 'John Doe', product: 'Bento Cake', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
+        { id: 'ORD002', customer: 'Jane Smith', product: 'Cupcakes (4)', date: '2023-11-21', total: 'GH₵55.00', status: 'Pending' },
+        { id: 'ORD003', customer: 'Bob Johnson', product: '8" Cake', date: '2023-11-21', total: 'GH₵350.00', status: 'In Progress' },
     ]);
+    
     // In a real app, this would be shared state or fetched from a service
     const [customers, setCustomers] = useState(initialCustomers);
+    const [products, setProducts] = useState(initialProducts);
     
     const handleAddOrder = (order: any) => {
         setOrders(prev => [order, ...prev]);
@@ -217,7 +279,7 @@ export default function OrdersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Orders</h1>
-                <NewOrderForm customers={customers} onOrderAdded={handleAddOrder} onCustomerAdded={handleAddCustomer} />
+                <NewOrderForm customers={customers} products={products} onOrderAdded={handleAddOrder} onCustomerAdded={handleAddCustomer} />
             </div>
             <Card>
                 <CardHeader>

@@ -7,11 +7,11 @@ import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const initialOrders = [
-    { id: 'ORD001', customer: 'John Doe', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
-    { id: 'ORD002', customer: 'Jane Smith', date: '2023-11-21', total: 'GH₵45.50', status: 'Pending' },
-    { id: 'ORD003', customer: 'Bob Johnson', date: '2023-11-21', total: 'GH₵205.00', status: 'In Progress' },
-    { id: 'ORD004', customer: 'Alice Williams', date: '2023-11-22', total: 'GH₵78.25', status: 'Completed' },
-    { id: 'ORD005', customer: 'Charlie Brown', date: '2023-11-23', total: 'GH₵99.99', status: 'Cancelled' },
+    { id: 'ORD001', customer: 'John Doe', product: 'Bento Cake', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
+    { id: 'ORD002', customer: 'Jane Smith', product: 'Cupcakes (4)', date: '2023-11-21', total: 'GH₵55.00', status: 'Pending' },
+    { id: 'ORD003', customer: 'Bob Johnson', product: '8" Cake', date: '2023-11-21', total: 'GH₵350.00', status: 'In Progress' },
+    { id: 'ORD004', customer: 'Alice Williams', product: 'Doughnuts (12)', date: '2023-11-22', total: 'GH₵120.00', status: 'Completed' },
+    { id: 'ORD005', customer: 'Charlie Brown', product: 'Sausage Roll', date: '2023-11-23', total: 'GH₵15.00', status: 'Cancelled' },
 ];
 
 const statuses = ['Completed', 'Pending', 'In Progress', 'Cancelled'];
@@ -55,6 +55,7 @@ export function RecentOrdersTable({ orders: ordersProp, onUpdateOrder }: { order
                 <TableRow>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Product</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
@@ -65,6 +66,7 @@ export function RecentOrdersTable({ orders: ordersProp, onUpdateOrder }: { order
                     <TableRow key={order.id}>
                         <TableCell className="font-medium">{order.id}</TableCell>
                         <TableCell>{order.customer}</TableCell>
+                        <TableCell>{order.product}</TableCell>
                         <TableCell>{order.date}</TableCell>
                         <TableCell>{order.total}</TableCell>
                         <TableCell>

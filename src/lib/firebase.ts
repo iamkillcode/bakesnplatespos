@@ -5,12 +5,12 @@ import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  "projectId": "bakesnplates",
-  "appId": "1:661416198704:web:f330ae9e730c43f3f5a3f5",
-  "storageBucket": "bakesnplates.appspot.com",
-  "apiKey": "AIzaSyD55cqczaXiRz24v0a2Dg2O8Srqv3bItlw",
-  "authDomain": "bakesnplates.firebaseapp.com",
-  "messagingSenderId": "661416198704"
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
 };
 
 

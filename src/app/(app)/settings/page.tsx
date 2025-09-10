@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -21,7 +20,7 @@ export function ThemeToggle() {
   return (
     <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted p-1">
       <Button
-        variant={theme === 'light' ? 'primary' : 'ghost'}
+        variant={theme === 'light' ? 'default' : 'ghost'}
         size="sm"
         onClick={() => setTheme('light')}
       >
@@ -29,7 +28,7 @@ export function ThemeToggle() {
         Light
       </Button>
       <Button
-        variant={theme === 'dark' ? 'primary' : 'ghost'}
+        variant={theme === 'dark' ? 'default' : 'ghost'}
         size="sm"
         onClick={() => setTheme('dark')}
       >
@@ -37,7 +36,7 @@ export function ThemeToggle() {
         Dark
       </Button>
       <Button
-        variant={theme === 'system' ? 'primary' : 'ghost'}
+        variant={theme === 'system' ? 'default' : 'ghost'}
         size="sm"
         onClick={() => setTheme('system')}
       >
@@ -173,7 +172,7 @@ function AvatarUploader() {
                 <Avatar className="h-24 w-24">
                     <AvatarImage
                         key={user?.avatarUrl}
-                        src={user?.avatarUrl}
+                        src={user?.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : undefined}
                         alt="User"
                     />
                     <AvatarFallback className="text-3xl">{fallback}</AvatarFallback>

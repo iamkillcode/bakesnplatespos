@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
@@ -28,8 +28,8 @@ function AddProductForm({ onProductAdded }: { onProductAdded: () => void }) {
     defaultValues: { name: "", price: 0 },
   });
 
-  const onSubmit = (values: z.infer<typeof productSchema>) => {
-    addProduct(values);
+  const onSubmit = async (values: z.infer<typeof productSchema>) => {
+    await addProduct(values);
     onProductAdded();
     form.reset();
     setOpen(false);
@@ -78,7 +78,10 @@ function AddProductForm({ onProductAdded }: { onProductAdded: () => void }) {
                 </FormItem>
               )}
             />
-            <Button type="submit">Add Product</Button>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Product
+            </Button>
           </form>
         </Form>
       </DialogContent>
@@ -88,20 +91,24 @@ function AddProductForm({ onProductAdded }: { onProductAdded: () => void }) {
 
 
 export default function ProductsPage() {
-    const { products } = useBusinessData();
-    const [version, setVersion] = useState(0);
+    const { products, loading, refetch } = useBusinessData();
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Products</h1>
-                <AddProductForm onProductAdded={() => setVersion(v => v+1)} />
+                <AddProductForm onProductAdded={refetch} />
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Product List</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {loading ? (
+                         <div className="flex justify-center items-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -118,6 +125,7 @@ export default function ProductsPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    )}
                 </CardContent>
             </Card>
         </div>

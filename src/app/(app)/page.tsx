@@ -2,12 +2,13 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, Package, ShoppingCart, Users } from 'lucide-react';
+import { DollarSign, Package, ShoppingCart, Users, Loader2 } from 'lucide-react';
 import { RecentOrdersTable } from './RecentOrdersTable';
 import { useBusinessData } from '@/hooks/use-business-data';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
-  const { orders, customers, inventory, updateOrderStatus } = useBusinessData();
+  const { orders, customers, inventory, loading, updateOrderStatus } = useBusinessData();
 
   const totalRevenue = orders
     .filter(o => o.status === 'Completed')
@@ -26,7 +27,7 @@ export default function DashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">GH₵{totalRevenue.toFixed(2)}</div>
+            {loading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">GH₵{totalRevenue.toFixed(2)}</div>}
             <p className="text-xs text-muted-foreground">From completed orders</p>
           </CardContent>
         </Card>
@@ -36,7 +37,7 @@ export default function DashboardPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingOrders}</div>
+            {loading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{pendingOrders}</div>}
             <p className="text-xs text-muted-foreground">Awaiting processing</p>
           </CardContent>
         </Card>
@@ -46,8 +47,8 @@ export default function DashboardPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{lowStockItems}</div>
-            <p className="text-xs text-muted-foreground">Items needing reorder</p>d
+            {loading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{lowStockItems}</div>}
+            <p className="text-xs text-muted-foreground">Items needing reorder</p>
           </CardContent>
         </Card>
         <Card>
@@ -56,7 +57,7 @@ export default function DashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{customers.length}</div>
+            {loading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{customers.length}</div>}
             <p className="text-xs text-muted-foreground">customers in your records</p>
           </CardContent>
         </Card>
@@ -67,7 +68,13 @@ export default function DashboardPage() {
           <CardTitle>Recent Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <RecentOrdersTable orders={orders.slice(0, 5)} onUpdateOrder={updateOrderStatus} />
+          {loading ? (
+            <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+           ) : (
+            <RecentOrdersTable orders={orders.slice(0, 5)} onUpdateOrder={updateOrderStatus} />
+           )}
         </CardContent>
       </Card>
     </div>

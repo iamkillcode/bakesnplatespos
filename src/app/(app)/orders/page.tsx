@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, Loader2 } from "lucide-react";
 import { RecentOrdersTable } from "../RecentOrdersTable";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -12,7 +12,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBusinessData } from '@/hooks/use-business-data';
 
@@ -41,7 +40,7 @@ type OrderFormValues = z.infer<typeof orderSchema>;
 
 function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
   const [open, setOpen] = useState(false);
-  const { customers, products, addCustomer, addOrder } = useBusinessData();
+  const { customers, products, addCustomer, addOrder, loading } = useBusinessData();
   
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
@@ -75,13 +74,13 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
     setTotal(newTotal);
   }, [formProducts, adjustment, products]);
 
-  const onSubmit = (values: OrderFormValues) => {
+  const onSubmit = async (values: OrderFormValues) => {
     let customerName = "";
     let custId = values.customerId;
 
     if (values.customerId === ADD_NEW_CUSTOMER_VALUE) {
         customerName = values.newCustomerName!;
-        const newCustomer = addCustomer({ name: customerName, phone: 'N/A' });
+        const newCustomer = await addCustomer({ name: customerName, phone: 'N/A' });
         custId = newCustomer.id;
         customerName = newCustomer.name;
     } else {
@@ -94,7 +93,7 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
         return `${productInfo?.name} (x${p.quantity})`;
     }).join(', ');
 
-    addOrder({
+    await addOrder({
         customer: customerName,
         product: productDetails,
         total: `GH₵${total.toFixed(2)}`,
@@ -123,6 +122,7 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-h-[80vh] overflow-y-auto p-1">
+            { loading ? <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div> : <>
             <FormField
               control={form.control}
               name="customerId"
@@ -264,7 +264,11 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
                 </FormItem>
               )}
             />
-            <Button type="submit">Create Order</Button>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Order
+            </Button>
+            </> }
           </form>
         </Form>
       </DialogContent>
@@ -274,26 +278,26 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
 
 
 export default function OrdersPage() {
-    const { orders, updateOrderStatus } = useBusinessData();
-    // Local state to trigger re-renders
-    const [version, setVersion] = useState(0);
-
-    const handleOrderDataChanged = () => {
-        setVersion(v => v + 1);
-    };
+    const { orders, loading, updateOrderStatus, refetch } = useBusinessData();
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold font-headline">Orders</h1>
-                <NewOrderForm onOrderAdded={handleOrderDataChanged} />
+                <NewOrderForm onOrderAdded={refetch} />
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>All Orders</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {loading ? (
+                         <div className="flex justify-center items-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
                     <RecentOrdersTable orders={orders} onUpdateOrder={updateOrderStatus} />
+                    )}
                 </CardContent>
             </Card>
         </div>

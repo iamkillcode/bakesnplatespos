@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
-import { PlusCircle, X } from "lucide-react";
+import { PlusCircle, X, Loader2 } from "lucide-react";
 import { useBusinessData } from "@/hooks/use-business-data";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -40,7 +40,7 @@ const checkoutSchema = z.object({
 
 function CheckoutDialog({ orderItems, total, onCheckout }: { orderItems: OrderItem[], total: number, onCheckout: () => void }) {
     const [open, setOpen] = useState(false);
-    const { customers, addCustomer, addOrder } = useBusinessData();
+    const { customers, addCustomer, addOrder, loading: customersLoading } = useBusinessData();
     const form = useForm<z.infer<typeof checkoutSchema>>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: { customerId: "", newCustomerName: "" },
@@ -48,18 +48,18 @@ function CheckoutDialog({ orderItems, total, onCheckout }: { orderItems: OrderIt
 
     const customerId = form.watch("customerId");
 
-    const onSubmit = (values: z.infer<typeof checkoutSchema>) => {
+    const onSubmit = async (values: z.infer<typeof checkoutSchema>) => {
         let customerName = "";
         if (values.customerId === ADD_NEW_CUSTOMER_VALUE) {
             customerName = values.newCustomerName!;
-            addCustomer({ name: customerName, phone: 'N/A (POS)' });
+            await addCustomer({ name: customerName, phone: 'N/A (POS)' });
         } else {
             customerName = customers.find(c => c.id === values.customerId)?.name || "Walk-in Customer";
         }
 
         const productDetails = orderItems.map(p => `${p.name} (x${p.quantity})`).join(', ');
 
-        addOrder({
+        await addOrder({
             customer: customerName,
             product: productDetails,
             total: `GH₵${total.toFixed(2)}`,
@@ -96,6 +96,7 @@ function CheckoutDialog({ orderItems, total, onCheckout }: { orderItems: OrderIt
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                       {customersLoading ? <div className="flex justify-center"><Loader2 className="h-6 w-6 animate-spin"/></div> : <>
                         <FormField
                             control={form.control}
                             name="customerId"
@@ -138,7 +139,11 @@ function CheckoutDialog({ orderItems, total, onCheckout }: { orderItems: OrderIt
                                 )}
                             />
                         )}
-                        <Button type="submit" className="w-full">Confirm & Pay</Button>
+                        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                           {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                           Confirm & Pay
+                        </Button>
+                       </>}
                     </form>
                 </Form>
             </DialogContent>
@@ -149,10 +154,9 @@ function CheckoutDialog({ orderItems, total, onCheckout }: { orderItems: OrderIt
 
 
 export default function POSPage() {
-    const { products } = useBusinessData();
+    const { products, loading, refetch } = useBusinessData();
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     
-    // Create placeholder images for products that don't have them
     const productsWithImages = products.map((p, i) => ({
         ...p,
         image: `https://picsum.photos/200/20${i % 10}`,
@@ -189,12 +193,18 @@ export default function POSPage() {
 
     const handleCheckout = () => {
         setOrderItems([]);
+        refetch(); // Refetch all data to update orders list etc.
     };
 
     return (
         <div className="grid lg:grid-cols-3 gap-6 h-full">
             <div className="lg:col-span-2">
                 <h1 className="text-3xl font-bold font-headline mb-6">Point of Sale</h1>
+                {loading ? (
+                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-center items-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {productsWithImages.map(product => (
                         <Card key={product.name} className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow" onClick={() => addToOrder(product)}>
@@ -208,6 +218,7 @@ export default function POSPage() {
                         </Card>
                     ))}
                 </div>
+                )}
             </div>
             <div className="lg:col-span-1">
                 <Card className="sticky top-20">

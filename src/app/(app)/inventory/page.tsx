@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -38,11 +38,11 @@ function AddInventoryItemForm({ onItemAdded }: { onItemAdded: () => void }) {
   const { addInventoryItem } = useBusinessData();
   const form = useForm({
     resolver: zodResolver(inventorySchema),
-    defaultValues: { name: "", stock: "", reorder: "", status: "In Stock" },
+    defaultValues: { name: "", stock: "", reorder: "", status: "In Stock" as const },
   });
 
-  const onSubmit = (values: z.infer<typeof inventorySchema>) => {
-    addInventoryItem(values);
+  const onSubmit = async (values: z.infer<typeof inventorySchema>) => {
+    await addInventoryItem(values);
     onItemAdded();
     form.reset();
     setOpen(false);
@@ -126,7 +126,10 @@ function AddInventoryItemForm({ onItemAdded }: { onItemAdded: () => void }) {
                 </FormItem>
               )}
             />
-            <Button type="submit">Add Item</Button>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Item
+            </Button>
           </form>
         </Form>
       </DialogContent>
@@ -136,20 +139,24 @@ function AddInventoryItemForm({ onItemAdded }: { onItemAdded: () => void }) {
 
 
 export default function InventoryPage() {
-    const { inventory } = useBusinessData();
-    const [version, setVersion] = useState(0);
+    const { inventory, loading, refetch } = useBusinessData();
     
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Inventory</h1>
-                <AddInventoryItemForm onItemAdded={() => setVersion(v => v + 1)} />
+                <AddInventoryItemForm onItemAdded={refetch} />
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Stock Levels</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {loading ? (
+                        <div className="flex justify-center items-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -174,6 +181,7 @@ export default function InventoryPage() {
                             ))}
                         </TableBody>
                     </Table>
+                    )}
                 </CardContent>
             </Card>
         </div>

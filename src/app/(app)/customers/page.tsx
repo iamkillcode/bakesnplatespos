@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
@@ -27,8 +27,8 @@ function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: () => void }) {
     defaultValues: { name: "", phone: "" },
   });
 
-  const onSubmit = (values: z.infer<typeof customerSchema>) => {
-    addCustomer(values);
+  const onSubmit = async (values: z.infer<typeof customerSchema>) => {
+    await addCustomer(values);
     onCustomerAdded();
     form.reset();
     setOpen(false);
@@ -77,7 +77,10 @@ function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: () => void }) {
                 </FormItem>
               )}
             />
-            <Button type="submit">Add Customer</Button>
+             <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Add Customer
+            </Button>
           </form>
         </Form>
       </DialogContent>
@@ -87,8 +90,7 @@ function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: () => void }) {
 
 
 export default function CustomersPage() {
-    const { customers, orders } = useBusinessData();
-    const [version, setVersion] = useState(0);
+    const { customers, orders, loading, refetch } = useBusinessData();
 
     const getCustomerStats = (customerName: string) => {
         const customerOrders = orders.filter(o => o.customer === customerName);
@@ -106,13 +108,18 @@ export default function CustomersPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold font-headline">Customers</h1>
-                <AddCustomerForm onCustomerAdded={() => setVersion(v => v + 1)} />
+                <AddCustomerForm onCustomerAdded={refetch} />
             </div>
             <Card>
                 <CardHeader>
                     <CardTitle>Customer List</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    {loading ? (
+                         <div className="flex justify-center items-center p-8">
+                            <Loader2 className="h-8 w-8 animate-spin" />
+                        </div>
+                    ) : (
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -136,6 +143,7 @@ export default function CustomersPage() {
                             })}
                         </TableBody>
                     </Table>
+                    )}
                 </CardContent>
             </Card>
         </div>

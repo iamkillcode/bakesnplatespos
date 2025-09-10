@@ -23,10 +23,11 @@ const expenseSchema = z.object({
   cost: z.coerce.number().min(0.01, "Cost must be a positive number"),
 });
 
-function ExpenseForm({ onFormSubmit, initialValues, isEdit = false }: {
+function ExpenseForm({ onFormSubmit, initialValues, isEdit = false, expenseNames }: {
   onFormSubmit: (values: z.infer<typeof expenseSchema>) => Promise<void>,
   initialValues?: z.infer<typeof expenseSchema>,
-  isEdit?: boolean
+  isEdit?: boolean,
+  expenseNames: string[],
 }) {
   const [open, setOpen] = useState(false);
   const form = useForm({
@@ -76,7 +77,12 @@ function ExpenseForm({ onFormSubmit, initialValues, isEdit = false }: {
                 <FormItem>
                   <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Electricity Bill" {...field} />
+                    <>
+                     <Input placeholder="e.g. Electricity Bill" {...field} list="expense-names" />
+                     <datalist id="expense-names">
+                        {expenseNames.map(name => <option key={name} value={name} />)}
+                     </datalist>
+                    </>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -109,6 +115,8 @@ function ExpenseForm({ onFormSubmit, initialValues, isEdit = false }: {
 export default function ExpensesPage() {
     const { expenses, loading, refetch, addExpense, updateExpense, deleteExpense } = useBusinessData();
 
+    const uniqueExpenseNames = Array.from(new Set(expenses.map(e => e.name)));
+
     const handleAddExpense = async (values: z.infer<typeof expenseSchema>) => {
         await addExpense(values);
         refetch();
@@ -130,6 +138,7 @@ export default function ExpensesPage() {
                 <h1 className="text-3xl font-bold font-headline">Expenses</h1>
                 <ExpenseForm 
                     onFormSubmit={handleAddExpense}
+                    expenseNames={uniqueExpenseNames}
                 />
             </div>
             <Card>
@@ -171,6 +180,7 @@ export default function ExpensesPage() {
                                                         onFormSubmit={(values) => handleUpdateExpense(expense.id, values)}
                                                         initialValues={expense}
                                                         isEdit={true}
+                                                        expenseNames={uniqueExpenseNames}
                                                     />
                                                      <AlertDialogTrigger asChild>
                                                         <DropdownMenuItem className="text-destructive focus:text-destructive">

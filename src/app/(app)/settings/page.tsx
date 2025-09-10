@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/use-auth';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Moon, Sun, Laptop, Loader2 } from 'lucide-react';
+import { Moon, Sun, Laptop, Loader2, Edit2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -77,7 +77,6 @@ function ProfileForm() {
     
     const onSubmit = async (data: ProfileFormValues) => {
         await updateUserProfile(data);
-        // Optionally show a success toast
     };
 
     return (
@@ -132,15 +131,65 @@ function ProfileForm() {
     );
 }
 
+function AvatarUploader() {
+    const { user, uploadAvatar } = useAuth();
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setIsUploading(true);
+            await uploadAvatar(file);
+            setIsUploading(false);
+        }
+    };
+    
+    const displayName = user?.firstName && user?.lastName ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : user?.email?.charAt(0).toUpperCase();
+
+    return (
+        <div className="flex items-center gap-4">
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange}
+                className="hidden" 
+                accept="image/png, image/jpeg"
+            />
+            <Button
+              variant="ghost"
+              className="relative h-24 w-24 rounded-full group"
+              onClick={handleAvatarClick}
+              disabled={isUploading}
+            >
+                <Avatar className="h-24 w-24">
+                    <AvatarImage
+                        src={user?.avatarUrl}
+                        alt="User"
+                    />
+                    <AvatarFallback className="text-3xl">{displayName}</AvatarFallback>
+                </Avatar>
+                 <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    {isUploading ? (
+                        <Loader2 className="h-8 w-8 animate-spin text-white" />
+                    ) : (
+                        <Edit2 className="h-8 w-8 text-white" />
+                    )}
+                 </div>
+            </Button>
+            <div className="space-y-1">
+                <p className="font-medium">Profile Picture</p>
+                <p className="text-sm text-muted-foreground">Click avatar to upload a new one.</p>
+            </div>
+        </div>
+    );
+}
 
 export default function SettingsPage() {
-  const { user } = useAuth();
-  const [avatarKey, setAvatarKey] = useState(0);
-
-  const refreshAvatar = () => {
-    setAvatarKey((prevKey) => prevKey + 1);
-  };
-
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold font-headline">Settings</h1>
@@ -162,22 +211,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-             <div className="flex items-center gap-4">
-                <Avatar className="h-20 w-20">
-                    <AvatarImage
-                    key={avatarKey}
-                    src={`https://picsum.photos/200/200?random=${avatarKey}`}
-                    alt="User"
-                    data-ai-hint="person face"
-                    width={80}
-                    height={80}
-                    />
-                    <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <Button variant="outline" onClick={refreshAvatar}>
-                    New Avatar
-                </Button>
-                </div>
+            <AvatarUploader />
             <div className="space-y-2">
               <Label>Theme</Label>
               <ThemeToggle />

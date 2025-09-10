@@ -204,22 +204,17 @@ function NotificationMenu() {
 
 function UserMenu() {
     const { user, logout } = useAuth();
-    // Add a key to force re-render of Avatar
-    const [avatarKey, setAvatarKey] = useState(0);
-
-    const refreshAvatar = () => {
-        setAvatarKey(prev => prev + 1);
-    }
     
     const displayName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff');
+    const fallback = user?.firstName && user?.lastName ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : user?.email?.charAt(0).toUpperCase();
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage key={avatarKey} src={`https://picsum.photos/100/100?random=${avatarKey}`} alt="User" data-ai-hint="person face" width={40} height={40} />
-                        <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                        <AvatarImage src={user?.avatarUrl} alt="User" />
+                        <AvatarFallback>{fallback}</AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>

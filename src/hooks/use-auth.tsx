@@ -3,10 +3,12 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { app, db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { app, db, storage } from '@/lib/firebase';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useToast } from './use-toast';
 
 const auth = getAuth(app);
 
@@ -16,6 +18,7 @@ interface AppUser extends User {
   role: UserRole;
   firstName?: string;
   lastName?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
@@ -24,6 +27,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUserProfile: (data: {firstName: string, lastName: string}) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
   error: string | null;
 }
 
@@ -33,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -47,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: userData.role || 'staff',
                 firstName: userData.firstName,
                 lastName: userData.lastName,
+                avatarUrl: userData.avatarUrl,
             } as AppUser);
         } else {
             // Default to 'staff' if no role document is found
@@ -96,13 +102,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             lastName: data.lastName
         }, { merge: true });
         setUser(prevUser => prevUser ? { ...prevUser, ...data } : null);
+        toast({ title: 'Success', description: 'Profile updated successfully.' });
     } catch (error) {
         console.error("Error updating user profile:", error);
-        // Optionally, set an error state to show in the UI
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
     }
-  }, [user]);
+  }, [user, toast]);
   
-  const value = { user, loading, login, logout, updateUserProfile, error };
+  const uploadAvatar = useCallback(async (file: File) => {
+    if (!user) return;
+
+    const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+    
+    try {
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, { avatarUrl: downloadURL });
+      
+      setUser(prevUser => prevUser ? { ...prevUser, avatarUrl: downloadURL } : null);
+       toast({ title: 'Success', description: 'Avatar updated successfully.' });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to upload avatar.' });
+    }
+  }, [user, toast]);
+  
+  const value = { user, loading, login, logout, updateUserProfile, uploadAvatar, error };
 
   return (<AuthContext.Provider value={value}>{children}</AuthContext.Provider>);
 }

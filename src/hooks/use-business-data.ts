@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy, writeBatch } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 export type Product = {
@@ -35,6 +35,97 @@ export type InventoryItem = {
     status: 'In Stock' | 'Low Stock' | 'Out of Stock';
 }
 
+const seedDatabase = async () => {
+    const batch = writeBatch(db);
+
+    // Seed Products
+    const productsCollection = collection(db, 'products');
+    const productsSnapshot = await getDocs(productsCollection);
+    if (productsSnapshot.empty) {
+        const initialProducts = [
+            { name: 'Bento Cake', price: 65.00 },
+            { name: 'Cupcakes (2)', price: 40.00 },
+            { name: 'Cupcakes (4)', price: 70.00 },
+            { name: 'Cupcakes (8)', price: 120.00 },
+            { name: 'Cupcakes (12)', price: 180.00 },
+            { name: '6 inches cake', price: 300.00 },
+            { name: '8 inches cake', price: 450.00 },
+            { name: '10 inches cake', price: 600.00 },
+            { name: '12 inches cake', price: 800.00 },
+            { name: 'Doughnuts (2)', price: 30.00 },
+            { name: 'Doughnuts (4)', price: 55.00 },
+            { name: 'Doughnuts (6)', price: 80.00 },
+            { name: 'Doughnuts (8)', price: 100.00 },
+            { name: 'Doughnuts (10)', price: 120.00 },
+            { name: 'Doughnuts (12)', price: 140.00 },
+            { name: 'Sausage Rolls', price: 15.00 },
+            { name: 'Sobolo Juice', price: 10.00 },
+            { name: 'Fruit Juice', price: 12.00 },
+        ];
+        initialProducts.forEach(product => {
+            const docRef = doc(productsCollection);
+            batch.set(docRef, product);
+        });
+        console.log('Seeding products...');
+    }
+
+    // Seed Customers
+    const customersCollection = collection(db, 'customers');
+    const customersSnapshot = await getDocs(customersCollection);
+    if (customersSnapshot.empty) {
+        const initialCustomers = [
+            { name: 'Ama Serwaa', phone: '024-123-4567' },
+            { name: 'Kofi Mensah', phone: '055-987-6543' },
+            { name: 'Walk-in Customer', phone: 'N/A' },
+        ];
+        initialCustomers.forEach(customer => {
+            const docRef = doc(customersCollection);
+            batch.set(docRef, customer);
+        });
+        console.log('Seeding customers...');
+    }
+    
+    // Seed Inventory
+    const inventoryCollection = collection(db, 'inventory');
+    const inventorySnapshot = await getDocs(inventoryCollection);
+    if(inventorySnapshot.empty) {
+        const initialInventory = [
+            { name: 'Flour', stock: '50 kg', reorder: '10 kg', status: 'In Stock' },
+            { name: 'Sugar', stock: '25 kg', reorder: '5 kg', status: 'In Stock' },
+            { name: 'Eggs', stock: '5 Crates', reorder: '1 Crate', status: 'In Stock' },
+            { name: 'Butter', stock: '5 kg', reorder: '2 kg', status: 'Low Stock' },
+            { name: 'Chocolate', stock: '10 bars', reorder: '5 bars', status: 'In Stock' },
+            { name: 'Vanilla Extract', stock: '1 bottle', reorder: '0.5 bottle', status: 'Out of Stock' },
+        ];
+        initialInventory.forEach(item => {
+            const docRef = doc(inventoryCollection);
+            batch.set(docRef, item);
+        });
+        console.log('Seeding inventory...');
+    }
+
+    // Seed Orders (only if products and customers were also seeded)
+    const ordersCollection = collection(db, 'orders');
+    const ordersSnapshot = await getDocs(ordersCollection);
+    if (productsSnapshot.empty && customersSnapshot.empty && ordersSnapshot.empty) {
+        const initialOrders = [
+            { customer: 'Ama Serwaa', product: 'Bento Cake (x1)', total: 'GH₵65.00', status: 'Completed', date: format(new Date(2024, 4, 1, 10, 30), 'yyyy-MM-dd HH:mm:ss') },
+            { customer: 'Kofi Mensah', product: 'Doughnuts (6) (x1)', total: 'GH₵80.00', status: 'Pending', date: format(new Date(2024, 4, 2, 14, 0), 'yyyy-MM-dd HH:mm:ss') },
+            { customer: 'Walk-in Customer', product: 'Sausage Rolls (x2)', total: 'GH₵30.00', status: 'Completed', date: format(new Date(2024, 4, 3, 9, 15), 'yyyy-MM-dd HH:mm:ss') },
+        ];
+         initialOrders.forEach(order => {
+            const docRef = doc(ordersCollection);
+            batch.set(docRef, order);
+        });
+        console.log('Seeding orders...');
+    }
+
+
+    await batch.commit();
+    console.log('Database seeding check complete.');
+};
+
+
 export function useBusinessData() {
     const [products, setProducts] = useState<Product[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -45,6 +136,8 @@ export function useBusinessData() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
+            await seedDatabase();
+
             const productsCollection = await getDocs(collection(db, 'products'));
             setProducts(productsCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
 

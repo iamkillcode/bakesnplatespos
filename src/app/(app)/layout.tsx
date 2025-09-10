@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import {
   Bell,
@@ -16,6 +16,7 @@ import {
   ShoppingBasket,
   LogOut,
   CreditCard,
+  Check,
 } from 'lucide-react';
 
 import {
@@ -33,6 +34,9 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AuthGuard, useAuth } from '@/hooks/use-auth';
+import { useNotifications } from '@/hooks/use-notifications';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
@@ -133,10 +137,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
             <header className="flex h-16 items-center justify-between border-b bg-background/50 backdrop-blur-sm px-4 md:px-6 sticky top-0 z-10">
             <SidebarTrigger />
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-                <span className="sr-only">Notifications</span>
-                </Button>
+                <NotificationMenu />
                 <UserMenu />
             </div>
             </header>
@@ -147,6 +148,57 @@ function AppLayout({ children }: { children: React.ReactNode }) {
         </SidebarProvider>
     </AuthGuard>
   );
+}
+
+function NotificationMenu() {
+    const { notifications, unreadCount, markAllAsRead } = useNotifications();
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                    {unreadCount > 0 && (
+                        <span className="absolute top-2 right-2.5 block h-2 w-2 rounded-full bg-destructive" />
+                    )}
+                    <Bell className="h-5 w-5" />
+                    <span className="sr-only">Notifications</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80 md:w-96" align="end">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                    <span className="font-bold">Notifications</span>
+                    {unreadCount > 0 && <Badge variant="secondary">{unreadCount} New</Badge>}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center p-4">No notifications yet.</p>
+                    ) : (
+                        notifications.map(notification => (
+                            <DropdownMenuItem key={notification.id} className={`flex items-start gap-3 p-3 ${!notification.read ? 'bg-secondary' : ''}`}>
+                                <div className="mt-1">
+                                    {!notification.read && <div className="h-2 w-2 rounded-full bg-primary" />}
+                                </div>
+                                <div className="flex-1">
+                                    <p className="font-medium text-sm">{notification.title}</p>
+                                    <p className="text-xs text-muted-foreground">{notification.description}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{formatDistanceToNow(new Date(notification.date), { addSuffix: true })}</p>
+                                </div>
+                            </DropdownMenuItem>
+                        ))
+                    )}
+                </div>
+                 {notifications.length > 0 && (
+                    <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="justify-center" onSelect={markAllAsRead}>
+                       <Check className="mr-2 h-4 w-4" /> Mark all as read
+                    </DropdownMenuItem>
+                    </>
+                )}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 function UserMenu() {
@@ -184,3 +236,5 @@ function UserMenu() {
 export default function AppPagesLayout({ children }: { children: React.ReactNode }) {
     return <AppLayout>{children}</AppLayout>;
 }
+
+    

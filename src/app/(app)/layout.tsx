@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Bell,
@@ -17,6 +17,7 @@ import {
   LogOut,
   CreditCard,
   Check,
+  Settings,
 } from 'lucide-react';
 
 import {
@@ -203,13 +204,19 @@ function NotificationMenu() {
 
 function UserMenu() {
     const { user, logout } = useAuth();
+    // Add a key to force re-render of Avatar
+    const [avatarKey, setAvatarKey] = useState(0);
+
+    const refreshAvatar = () => {
+        setAvatarKey(prev => prev + 1);
+    }
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src="https://picsum.photos/100/100" alt="User" data-ai-hint="person face" width={40} height={40} />
+                        <AvatarImage key={avatarKey} src={`https://picsum.photos/100/100?random=${avatarKey}`} alt="User" data-ai-hint="person face" width={40} height={40} />
                         <AvatarFallback>{user?.email?.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                 </Button>
@@ -224,6 +231,12 @@ function UserMenu() {
                     </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                    </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={logout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
@@ -236,5 +249,3 @@ function UserMenu() {
 export default function AppPagesLayout({ children }: { children: React.ReactNode }) {
     return <AppLayout>{children}</AppLayout>;
 }
-
-    

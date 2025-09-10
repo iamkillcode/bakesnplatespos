@@ -2,10 +2,10 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Trash2, Loader2 } from "lucide-react";
+import { PlusCircle, Trash2, Loader2, Search } from "lucide-react";
 import { RecentOrdersTable } from "../RecentOrdersTable";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useForm, useFieldArray } from 'react-hook-form';
@@ -14,7 +14,9 @@ import { z } from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useBusinessData } from '@/hooks/use-business-data';
+import { useBusinessData, Order } from '@/hooks/use-business-data';
+import { useDebounce } from 'use-debounce';
+
 
 const ADD_NEW_CUSTOMER_VALUE = 'add_new_customer';
 
@@ -280,24 +282,78 @@ function NewOrderForm({ onOrderAdded }: { onOrderAdded: () => void }) {
 
 export default function OrdersPage() {
     const { orders, loading, updateOrderStatus, refetch } = useBusinessData();
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
+    const [sortDescriptor, setSortDescriptor] = useState<{column: keyof Order | null; direction: 'ascending' | 'descending'}>({
+        column: 'date',
+        direction: 'descending'
+    });
+
+    const filteredAndSortedOrders = useMemo(() => {
+        let filtered = orders;
+
+        if (debouncedSearchQuery) {
+            filtered = orders.filter(order =>
+                order.customer.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+                order.product.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+            );
+        }
+
+        if (sortDescriptor?.column) {
+            filtered.sort((a, b) => {
+                const aValue = a[sortDescriptor.column!];
+                const bValue = b[sortDescriptor.column!];
+
+                let cmp = 0;
+                if(sortDescriptor.column === 'total') {
+                    cmp = parseFloat(aValue.replace('GH₵', '')) < parseFloat(bValue.replace('GH₵', '')) ? -1 : 1;
+                } else {
+                    cmp = aValue < bValue ? -1 : 1;
+                }
+
+                if (sortDescriptor.direction === 'descending') {
+                    cmp *= -1;
+                }
+                return cmp;
+            });
+        }
+        
+        return filtered;
+    }, [orders, debouncedSearchQuery, sortDescriptor]);
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <h1 className="text-3xl font-bold font-headline">Orders</h1>
-                <NewOrderForm onOrderAdded={refetch} />
+                <div>
+                    <h1 className="text-3xl font-bold font-headline">Orders</h1>
+                    <p className="text-muted-foreground">Search, sort, and manage all customer orders.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                       <Input 
+                           placeholder="Search orders..." 
+                           className="pl-9"
+                           value={searchQuery}
+                           onChange={(e) => setSearchQuery(e.target.value)}
+                       />
+                    </div>
+                    <NewOrderForm onOrderAdded={refetch} />
+                </div>
             </div>
             <Card>
-                <CardHeader>
-                    <CardTitle>All Orders</CardTitle>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     {loading ? (
                          <div className="flex justify-center items-center p-8">
                             <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
                     ) : (
-                    <RecentOrdersTable orders={orders} onUpdateOrder={updateOrderStatus} />
+                    <RecentOrdersTable 
+                        orders={filteredAndSortedOrders} 
+                        onUpdateOrder={updateOrderStatus}
+                        sortDescriptor={sortDescriptor}
+                        onSortChange={setSortDescriptor}
+                    />
                     )}
                 </CardContent>
             </Card>

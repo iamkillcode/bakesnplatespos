@@ -19,6 +19,9 @@ import {
 } from '@/components/ui/select';
 import type { Order } from '@/hooks/use-business-data';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { ArrowUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function getStatusVariant(status: string) {
   switch (status) {
@@ -35,25 +38,69 @@ function getStatusVariant(status: string) {
   }
 }
 
+type SortDescriptor = {
+  column: keyof Order | null;
+  direction: 'ascending' | 'descending';
+};
+
 export function RecentOrdersTable({
   orders,
   onUpdateOrder,
+  sortDescriptor,
+  onSortChange,
+  className,
 }: {
   orders: Order[];
   onUpdateOrder: (orderId: string, newStatus: string) => void;
+  sortDescriptor?: SortDescriptor;
+  onSortChange?: (descriptor: SortDescriptor) => void;
+  className?: string;
 }) {
   const handleStatusChange = (orderId: string, newStatus: string) => {
     onUpdateOrder(orderId, newStatus);
   };
 
+  const createSortHandler = (column: keyof Order) => () => {
+    if (!onSortChange || !sortDescriptor) return;
+    const isAsc = sortDescriptor.column === column && sortDescriptor.direction === 'ascending';
+    onSortChange({
+      column,
+      direction: isAsc ? 'descending' : 'ascending',
+    });
+  };
+
+  const renderSortIcon = (column: keyof Order) => {
+    if (!sortDescriptor || sortDescriptor.column !== column) {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    if (sortDescriptor.direction === 'ascending') {
+      return <ArrowUpDown className="ml-2 h-4 w-4" />;
+    }
+    return <ArrowUpDown className="ml-2 h-4 w-4" />;
+  };
+
+  const SortableHeader = ({ column, children }: { column: keyof Order, children: React.ReactNode }) => {
+    if (!onSortChange) {
+      return <TableHead>{children}</TableHead>;
+    }
+    return (
+       <TableHead>
+          <Button variant="ghost" onClick={createSortHandler(column)} className="px-0 py-0 h-auto font-bold">
+            {children}
+            {renderSortIcon(column)}
+          </Button>
+       </TableHead>
+    )
+  }
+
   return (
-    <Table>
+    <Table className={className}>
       <TableHeader>
         <TableRow>
-          <TableHead>Customer</TableHead>
+          <SortableHeader column="customer">Customer</SortableHeader>
           <TableHead>Product(s)</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Total</TableHead>
+          <SortableHeader column="date">Date</SortableHeader>
+          <SortableHeader column="total">Total</SortableHeader>
           <TableHead>Status</TableHead>
         </TableRow>
       </TableHeader>

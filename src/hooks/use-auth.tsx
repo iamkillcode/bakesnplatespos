@@ -107,12 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     try {
         const userDocRef = doc(db, 'users', user.uid);
+        // Use setDoc with merge:true to update or create without overwriting other fields
         await setDoc(userDocRef, { 
             firstName: data.firstName,
             lastName: data.lastName
         }, { merge: true });
-        // Refetch user data to ensure state is up-to-date
-        await fetchAppUserData(user);
+        
+        await fetchAppUserData(user); // Refetch to get all updated data
         toast({ title: 'Success', description: 'Profile updated successfully.' });
     } catch (error) {
         console.error("Error updating user profile:", error);

@@ -13,27 +13,47 @@ import { z } from 'genkit';
 
 // Mock data as we don't have a database
 const mockSalesData = [
-  { "date": "2024-05-01", "product": "Croissant", "quantity": 50, "price": 2.50 },
-  { "date": "2024-05-01", "product": "Sourdough Loaf", "quantity": 20, "price": 7.00 },
-  { "date": "2024-05-02", "product": "Cupcake", "quantity": 100, "price": 3.00 },
+  { "date": "2024-03-15", "product": "Bento Cake", "quantity": 10, "price": 65.00 },
+  { "date": "2024-03-20", "product": "Cupcakes (4)", "quantity": 25, "price": 70.00 },
+  { "date": "2024-04-01", "product": "Croissant", "quantity": 50, "price": 2.50 },
+  { "date": "2024-04-01", "product": "Sourdough Loaf", "quantity": 20, "price": 7.00 },
+  { "date": "2024-04-02", "product": "Cupcake", "quantity": 100, "price": 3.00 },
   { "date": "2024-05-03", "product": "Croissant", "quantity": 60, "price": 2.50 },
   { "date": "2024-05-04", "product": "Coffee", "quantity": 80, "price": 3.25 },
   { "date": "2024-05-05", "product": "Cheesecake Slice", "quantity": 40, "price": 5.00 },
 ];
 const mockExpensesData = [
-  { "date": "2024-05-01", "item": "Flour", "cost": 50.00 },
-  { "date": "2024-05-01", "item": "Sugar", "cost": 30.00 },
-  { "date": "2024-05-02", "item": "Packaging", "cost": 75.00 },
+  { "date": "2024-03-10", "item": "Flour", "cost": 150.00 },
+  { "date": "2024-04-01", "item": "Flour", "cost": 50.00 },
+  { "date": "2024-04-01", "item": "Sugar", "cost": 30.00 },
+  { "date": "2024-04-02", "item": "Packaging", "cost": 75.00 },
   { "date": "2024-05-03", "item": "Butter", "cost": 120.00 },
   { "date": "2024-05-04", "item": "Coffee Beans", "cost": 90.00 },
   { "date": "2024-05-05", "item": "Cream Cheese", "cost": 60.00 },
 ];
 
+const ChartDataSchema = z.object({
+    monthlyRevenue: z.array(z.object({
+        month: z.string(),
+        revenue: z.number(),
+    })).describe("An array of objects representing total revenue for each month."),
+    topProducts: z.array(z.object({
+        name: z.string(),
+        revenue: z.number(),
+    })).describe("An array of the top-selling products and their total revenue."),
+    expenseBreakdown: z.array(z.object({
+        name: z.string(),
+        cost: z.number(),
+    })).describe("An array of expense categories and their total costs."),
+});
+
 const AnalyticsSchema = z.object({
     totalRevenue: z.number().describe('The total revenue from sales.'),
     totalExpenses: z.number().describe('The total cost of expenses.'),
     netProfit: z.number().describe('The net profit (revenue - expenses).'),
+    charts: ChartDataSchema.describe("The data formatted for creating charts."),
 });
+
 
 const GetAnalyticsSummaryInputSchema = z.object({});
 export type GetAnalyticsSummaryInput = z.infer<typeof GetAnalyticsSummaryInputSchema>;
@@ -48,7 +68,7 @@ export type GetAnalyticsSummaryOutput = z.infer<typeof GetAnalyticsSummaryOutput
 const getAnalyticsData = ai.defineTool(
     {
         name: 'getAnalyticsData',
-        description: 'Returns key business analytics data like revenue, expenses, and profit.',
+        description: 'Returns key business analytics data like revenue, expenses, and profit, as well as data formatted for charts.',
         inputSchema: z.object({}),
         outputSchema: AnalyticsSchema,
     },
@@ -57,10 +77,34 @@ const getAnalyticsData = ai.defineTool(
         const totalExpenses = mockExpensesData.reduce((acc, expense) => acc + expense.cost, 0);
         const netProfit = totalRevenue - totalExpenses;
         
+        // Process data for charts
+        const monthlyRevenue: { [key: string]: number } = {};
+        mockSalesData.forEach(sale => {
+            const month = new Date(sale.date).toLocaleString('default', { month: 'short' });
+            const revenue = sale.quantity * sale.price;
+            monthlyRevenue[month] = (monthlyRevenue[month] || 0) + revenue;
+        });
+
+        const topProducts: { [key: string]: number } = {};
+        mockSalesData.forEach(sale => {
+            const revenue = sale.quantity * sale.price;
+            topProducts[sale.product] = (topProducts[sale.product] || 0) + revenue;
+        });
+
+        const expenseBreakdown: { [key: string]: number } = {};
+        mockExpensesData.forEach(expense => {
+            expenseBreakdown[expense.item] = (expenseBreakdown[expense.item] || 0) + expense.cost;
+        });
+        
         return {
             totalRevenue,
             totalExpenses,
             netProfit,
+            charts: {
+                monthlyRevenue: Object.entries(monthlyRevenue).map(([month, revenue]) => ({ month, revenue })).slice(-6), // last 6 months
+                topProducts: Object.entries(topProducts).map(([name, revenue]) => ({ name, revenue })).sort((a,b) => b.revenue - a.revenue).slice(0, 5), // top 5
+                expenseBreakdown: Object.entries(expenseBreakdown).map(([name, cost]) => ({ name, cost })).sort((a,b) => b.cost - a.cost).slice(0, 5), // top 5
+            }
         };
     }
 );

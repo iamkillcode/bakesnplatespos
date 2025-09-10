@@ -9,6 +9,7 @@ import {
   Package,
   ShoppingCart,
   Users,
+  PieChart,
 } from 'lucide-react';
 
 import {
@@ -75,6 +76,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <Link href="/customers">
                   <Users />
                   <span>Customers</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Analytics">
+                <Link href="/analytics">
+                  <PieChart />
+                  <span>Analytics</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

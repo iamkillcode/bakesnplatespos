@@ -15,6 +15,7 @@ import {
   PieChart,
   ShoppingBasket,
   LogOut,
+  CreditCard,
 } from 'lucide-react';
 
 import {
@@ -94,6 +95,14 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                     <Link href="/customers">
                     <Users />
                     <span>Customers</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                 <SidebarMenuItem>
+                <SidebarMenuButton asChild tooltip="Expenses">
+                    <Link href="/expenses">
+                    <CreditCard />
+                    <span>Expenses</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>

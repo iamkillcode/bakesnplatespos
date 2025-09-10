@@ -7,47 +7,34 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useBusinessData, InventoryItem } from "@/hooks/use-business-data";
+import { useBusinessData, Expense } from "@/hooks/use-business-data";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { format } from "date-fns";
 
-
-function getStatusVariant(status: string) {
-    switch (status) {
-        case 'In Stock': return 'secondary';
-        case 'Low Stock': return 'default';
-        case 'Out of Stock': return 'destructive';
-        default: return 'outline';
-    }
-}
-
-const inventorySchema = z.object({
-  name: z.string().min(1, "Item name is required"),
-  stock: z.string().min(1, "Current stock is required"),
-  reorder: z.string().min(1, "Reorder point is required"),
-  status: z.enum(['In Stock', 'Low Stock', 'Out of Stock']),
+const expenseSchema = z.object({
+  name: z.string().min(1, "Expense name is required"),
+  cost: z.coerce.number().min(0.01, "Cost must be a positive number"),
 });
 
-function InventoryItemForm({ onFormSubmit, initialValues, isEdit = false }: {
-  onFormSubmit: (values: z.infer<typeof inventorySchema>) => Promise<void>,
-  initialValues?: InventoryItem,
-  isEdit?: boolean,
+function ExpenseForm({ onFormSubmit, initialValues, isEdit = false }: {
+  onFormSubmit: (values: z.infer<typeof expenseSchema>) => Promise<void>,
+  initialValues?: z.infer<typeof expenseSchema>,
+  isEdit?: boolean
 }) {
   const [open, setOpen] = useState(false);
   const form = useForm({
-    resolver: zodResolver(inventorySchema),
-    defaultValues: initialValues || { name: "", stock: "", reorder: "", status: "In Stock" as const },
+    resolver: zodResolver(expenseSchema),
+    defaultValues: initialValues || { name: "", cost: 0 },
   });
 
-  const onSubmit = async (values: z.infer<typeof inventorySchema>) => {
+  const onSubmit = async (values: z.infer<typeof expenseSchema>) => {
     await onFormSubmit(values);
     if (!isEdit) {
       form.reset();
@@ -69,15 +56,15 @@ function InventoryItemForm({ onFormSubmit, initialValues, isEdit = false }: {
         ) : (
           <Button>
             <PlusCircle className="mr-2 h-4 w-4" />
-            Add Item
+            Add Expense
           </Button>
         )}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit Inventory Item" : "Add New Inventory Item"}</DialogTitle>
+          <DialogTitle>{isEdit ? "Edit Expense" : "Add a New Expense"}</DialogTitle>
           <DialogDescription>
-            {isEdit ? "Update the details for this inventory item." : "Fill in the details for the new inventory item."}
+            {isEdit ? "Update the details of the expense below." : "Enter the details of the new expense below."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -87,35 +74,9 @@ function InventoryItemForm({ onFormSubmit, initialValues, isEdit = false }: {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Item Name</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Chocolate Chips" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="stock"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Stock</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., 10 kg" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="reorder"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reorder Point</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., 5 kg" {...field} />
+                    <Input placeholder="e.g. Electricity Bill" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,29 +84,20 @@ function InventoryItemForm({ onFormSubmit, initialValues, isEdit = false }: {
             />
             <FormField
               control={form.control}
-              name="status"
+              name="cost"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a status" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            <SelectItem value="In Stock">In Stock</SelectItem>
-                            <SelectItem value="Low Stock">Low Stock</SelectItem>
-                            <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                        </SelectContent>
-                    </Select>
+                  <FormLabel>Cost (GH₵)</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" placeholder="150.00" {...field} />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isEdit ? "Save Changes" : "Add Item"}
+              {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEdit ? "Save Changes" : "Add Expense"}
             </Button>
           </form>
         </Form>
@@ -154,62 +106,57 @@ function InventoryItemForm({ onFormSubmit, initialValues, isEdit = false }: {
   );
 }
 
+export default function ExpensesPage() {
+    const { expenses, loading, refetch, addExpense, updateExpense, deleteExpense } = useBusinessData();
 
-export default function InventoryPage() {
-    const { inventory, loading, refetch, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useBusinessData();
-    
-    const handleAddItem = async (values: z.infer<typeof inventorySchema>) => {
-        await addInventoryItem(values);
+    const handleAddExpense = async (values: z.infer<typeof expenseSchema>) => {
+        await addExpense(values);
         refetch();
     };
 
-    const handleUpdateItem = async (itemId: string, values: z.infer<typeof inventorySchema>) => {
-        await updateInventoryItem(itemId, values);
+    const handleUpdateExpense = async (expenseId: string, values: z.infer<typeof expenseSchema>) => {
+        await updateExpense(expenseId, values);
         refetch();
     };
 
-    const handleDeleteItem = async (itemId: string) => {
-        await deleteInventoryItem(itemId);
+    const handleDeleteExpense = async (expenseId: string) => {
+        await deleteExpense(expenseId);
         refetch();
     };
-    
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold font-headline">Inventory</h1>
-                 <InventoryItemForm onFormSubmit={handleAddItem} />
+                <h1 className="text-3xl font-bold font-headline">Expenses</h1>
+                <ExpenseForm 
+                    onFormSubmit={handleAddExpense}
+                />
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Stock Levels</CardTitle>
+                    <CardTitle>Expense List</CardTitle>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="flex justify-center items-center p-8">
+                         <div className="flex justify-center items-center p-8">
                             <Loader2 className="h-8 w-8 animate-spin" />
                         </div>
                     ) : (
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Item</TableHead>
-                                <TableHead>Current Stock</TableHead>
-                                <TableHead>Reorder Point</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>Expense Name</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Cost</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {inventory.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="font-medium">{item.name}</TableCell>
-                                    <TableCell>{item.stock}</TableCell>
-                                    <TableCell>{item.reorder}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={getStatusVariant(item.status)} className="capitalize">
-                                            {item.status.toLowerCase()}
-                                        </Badge>
-                                    </TableCell>
+                            {expenses.map((expense) => (
+                                <TableRow key={expense.id}>
+                                    <TableCell className="font-medium">{expense.name}</TableCell>
+                                     <TableCell>{format(new Date(expense.date), 'dd MMM yyyy')}</TableCell>
+                                    <TableCell>GH₵{expense.cost.toFixed(2)}</TableCell>
                                     <TableCell className="text-right">
                                         <AlertDialog>
                                             <DropdownMenu>
@@ -220,9 +167,9 @@ export default function InventoryPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <InventoryItemForm 
-                                                        onFormSubmit={(values) => handleUpdateItem(item.id, values)}
-                                                        initialValues={item}
+                                                    <ExpenseForm 
+                                                        onFormSubmit={(values) => handleUpdateExpense(expense.id, values)}
+                                                        initialValues={expense}
                                                         isEdit={true}
                                                     />
                                                      <AlertDialogTrigger asChild>
@@ -236,12 +183,12 @@ export default function InventoryPage() {
                                                 <AlertDialogHeader>
                                                 <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                    This action cannot be undone. This will permanently delete the item.
+                                                    This action cannot be undone. This will permanently delete the expense record.
                                                 </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteItem(item.id)} className="bg-destructive hover:bg-destructive/90">
+                                                <AlertDialogAction onClick={() => handleDeleteExpense(expense.id)} className="bg-destructive hover:bg-destructive/90">
                                                     Delete
                                                 </AlertDialogAction>
                                                 </AlertDialogFooter>
@@ -258,3 +205,5 @@ export default function InventoryPage() {
         </div>
     );
 }
+
+    

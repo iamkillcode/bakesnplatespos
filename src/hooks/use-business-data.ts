@@ -36,6 +36,14 @@ export type InventoryItem = {
     status: 'In Stock' | 'Low Stock' | 'Out of Stock';
 }
 
+export type Expense = {
+    id: string;
+    name: string;
+    cost: number;
+    date: string;
+};
+
+
 const seedDatabase = async () => {
     const batch = writeBatch(db);
     let dirty = false;
@@ -108,6 +116,23 @@ const seedDatabase = async () => {
         });
         console.log('Seeding inventory...');
     }
+    
+    // Seed Expenses
+    const expensesCollection = collection(db, 'expenses');
+    const expensesSnapshot = await getDocs(expensesCollection);
+    if(expensesSnapshot.empty) {
+        dirty = true;
+        const initialExpenses = [
+            { name: 'Flour', cost: 150.00, date: format(new Date(2024, 3, 10), 'yyyy-MM-dd') },
+            { name: 'Sugar', cost: 30.00, date: format(new Date(2024, 4, 1), 'yyyy-MM-dd') },
+            { name: 'Packaging', cost: 75.00, date: format(new Date(2024, 4, 2), 'yyyy-MM-dd') },
+        ];
+        initialExpenses.forEach(item => {
+            const docRef = doc(expensesCollection);
+            batch.set(docRef, item);
+        });
+        console.log('Seeding expenses...');
+    }
 
     // Seed Orders (only if products and customers were also seeded)
     const ordersCollection = collection(db, 'orders');
@@ -141,6 +166,7 @@ export function useBusinessData() {
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [orders, setOrders] = useState<Order[]>([]);
     const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
@@ -164,6 +190,10 @@ export function useBusinessData() {
 
             const inventoryCollection = await getDocs(query(collection(db, 'inventory'), orderBy('name')));
             setInventory(inventoryCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
+            
+            const expensesCollection = await getDocs(query(collection(db, 'expenses'), orderBy('date', 'desc')));
+            setExpenses(expensesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense)));
+
         } catch (error) {
             console.error("Error fetching data: ", error);
         } finally {
@@ -180,7 +210,7 @@ export function useBusinessData() {
         return { ...product, id: docRef.id };
     };
 
-    const updateProduct = async (productId: string, product: Omit<Product, 'id'>) => {
+    const updateProduct = async (productId: string, product: Partial<Omit<Product, 'id'>>) => {
         const productRef = doc(db, "products", productId);
         await updateDoc(productRef, product);
     };
@@ -208,6 +238,32 @@ export function useBusinessData() {
         const docRef = await addDoc(collection(db, "inventory"), item);
         return { ...item, id: docRef.id };
     };
+    
+    const updateInventoryItem = async (itemId: string, item: Partial<Omit<InventoryItem, 'id'>>) => {
+        const itemRef = doc(db, "inventory", itemId);
+        await updateDoc(itemRef, item);
+    };
+
+    const deleteInventoryItem = async (itemId: string) => {
+        const itemRef = doc(db, "inventory", itemId);
+        await deleteDoc(itemRef);
+    };
+
+    const addExpense = async (expense: Omit<Expense, 'id'|'date'>) => {
+        const newExpense = { ...expense, date: format(new Date(), 'yyyy-MM-dd') };
+        const docRef = await addDoc(collection(db, "expenses"), newExpense);
+        return { ...newExpense, id: docRef.id };
+    };
+    
+    const updateExpense = async (expenseId: string, expense: Partial<Omit<Expense, 'id'>>) => {
+        const expenseRef = doc(db, "expenses", expenseId);
+        await updateDoc(expenseRef, expense);
+    };
+
+    const deleteExpense = async (expenseId: string) => {
+        const expenseRef = doc(db, "expenses", expenseId);
+        await deleteDoc(expenseRef);
+    };
 
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
         const orderRef = doc(db, "orders", orderId);
@@ -223,17 +279,21 @@ export function useBusinessData() {
         products, 
         customers, 
         orders, 
-        inventory, 
+        inventory,
+        expenses,
         loading, 
         addProduct,
         updateProduct,
         deleteProduct,
         addCustomer, 
         addOrder, 
-        addInventoryItem, 
+        addInventoryItem,
+        updateInventoryItem,
+        deleteInventoryItem,
+        addExpense,
+        updateExpense,
+        deleteExpense,
         updateOrderStatus, 
         refetch: fetchData 
     };
 }
-
-    

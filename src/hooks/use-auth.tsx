@@ -105,15 +105,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const updateUserProfile = useCallback(async (data: {firstName: string, lastName: string}) => {
     if (!user) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+
     try {
         const userDocRef = doc(db, 'users', user.uid);
-        // Use setDoc with merge:true to update or create without overwriting other fields
         await setDoc(userDocRef, { 
             firstName: data.firstName,
             lastName: data.lastName
         }, { merge: true });
         
-        await fetchAppUserData(user); // Refetch to get all updated data
+        await fetchAppUserData(currentUser); // Refetch to get all updated data
         toast({ title: 'Success', description: 'Profile updated successfully.' });
     } catch (error) {
         console.error("Error updating user profile:", error);
@@ -122,26 +124,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, toast, fetchAppUserData]);
   
   const uploadAvatar = useCallback(async (file: File) => {
-    if (!user) return;
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
 
-    const storageRef = ref(storage, `avatars/${user.uid}/${file.name}`);
+    const storageRef = ref(storage, `avatars/${currentUser.uid}/${file.name}`);
     
     try {
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      const userDocRef = doc(db, 'users', user.uid);
+      const userDocRef = doc(db, 'users', currentUser.uid);
       await updateDoc(userDocRef, { avatarUrl: downloadURL });
       
-      // Refetch user data to ensure the new avatar URL is populated everywhere
-      await fetchAppUserData(user);
+      await fetchAppUserData(currentUser);
 
       toast({ title: 'Success', description: 'Avatar updated successfully.' });
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast({ variant: 'destructive', title: 'Error', 'description': 'Failed to upload avatar.' });
     }
-  }, [user, toast, fetchAppUserData]);
+  }, [fetchAppUserData, toast]);
   
   const value = { user, loading, login, logout, updateUserProfile, uploadAvatar, error };
 

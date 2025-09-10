@@ -210,6 +210,8 @@ function UserMenu() {
     const refreshAvatar = () => {
         setAvatarKey(prev => prev + 1);
     }
+    
+    const displayName = user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : (user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff');
 
     return (
         <DropdownMenu>
@@ -224,7 +226,7 @@ function UserMenu() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff'}</p>
+                        <p className="text-sm font-medium leading-none">{displayName}</p>
                         <p className="text-xs leading-none text-muted-foreground">
                             {user?.email}
                         </p>

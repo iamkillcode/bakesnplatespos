@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
 import { app, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -14,6 +14,8 @@ type UserRole = 'staff' | 'executive';
 
 interface AppUser extends User {
   role: UserRole;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +23,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  updateUserProfile: (data: {firstName: string, lastName: string}) => Promise<void>;
   error: string | null;
 }
 
@@ -39,7 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUser({ ...firebaseUser, role: userData.role || 'staff' } as AppUser);
+            setUser({ 
+                ...firebaseUser, 
+                role: userData.role || 'staff',
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+            } as AppUser);
         } else {
             // Default to 'staff' if no role document is found
             setUser({ ...firebaseUser, role: 'staff' } as AppUser);
@@ -79,7 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
   
-  const value = { user, loading, login, logout, error };
+  const updateUserProfile = useCallback(async (data: {firstName: string, lastName: string}) => {
+    if (!user) return;
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await setDoc(userDocRef, { 
+            firstName: data.firstName,
+            lastName: data.lastName
+        }, { merge: true });
+        setUser(prevUser => prevUser ? { ...prevUser, ...data } : null);
+    } catch (error) {
+        console.error("Error updating user profile:", error);
+        // Optionally, set an error state to show in the UI
+    }
+  }, [user]);
+  
+  const value = { user, loading, login, logout, updateUserProfile, error };
 
   return (<AuthContext.Provider value={value}>{children}</AuthContext.Provider>);
 }

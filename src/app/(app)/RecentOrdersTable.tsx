@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
 
 const initialOrders = [
-    { id: 'ORD001', customer: 'John Doe', date: '2023-11-20', total: '$150.00', status: 'Completed' },
-    { id: 'ORD002', customer: 'Jane Smith', date: '2023-11-21', total: '$45.50', status: 'Pending' },
-    { id: 'ORD003', customer: 'Bob Johnson', date: '2023-11-21', total: '$205.00', status: 'In Progress' },
-    { id: 'ORD004', customer: 'Alice Williams', date: '2023-11-22', total: '$78.25', status: 'Completed' },
-    { id: 'ORD005', customer: 'Charlie Brown', date: '2023-11-23', total: '$99.99', status: 'Cancelled' },
+    { id: 'ORD001', customer: 'John Doe', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
+    { id: 'ORD002', customer: 'Jane Smith', date: '2023-11-21', total: 'GH₵45.50', status: 'Pending' },
+    { id: 'ORD003', customer: 'Bob Johnson', date: '2023-11-21', total: 'GH₵205.00', status: 'In Progress' },
+    { id: 'ORD004', customer: 'Alice Williams', date: '2023-11-22', total: 'GH₵78.25', status: 'Completed' },
+    { id: 'ORD005', customer: 'Charlie Brown', date: '2023-11-23', total: 'GH₵99.99', status: 'Cancelled' },
 ];
 
 function getStatusVariant(status: string) {

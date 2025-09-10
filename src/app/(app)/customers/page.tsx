@@ -14,11 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 
 const initialCustomers = [
-    { id: 'CUS001', name: 'John Doe', phone: '555-0101', totalOrders: 5, totalSpent: '$450.20' },
-    { id: 'CUS002', name: 'Jane Smith', phone: '555-0102', totalOrders: 2, totalSpent: '$95.50' },
-    { id: 'CUS003', name: 'Bob Johnson', phone: '555-0103', totalOrders: 8, totalSpent: '$1205.00' },
-    { id: 'CUS004', name: 'Alice Williams', phone: '555-0104', totalOrders: 12, totalSpent: '$780.25' },
-    { id: 'CUS005', name: 'Charlie Brown', phone: '555-0105', totalOrders: 1, totalSpent: '$99.99' },
+    { id: 'CUS001', name: 'John Doe', phone: '555-0101', totalOrders: 5, totalSpent: 'GH₵450.20' },
+    { id: 'CUS002', name: 'Jane Smith', phone: '555-0102', totalOrders: 2, totalSpent: 'GH₵95.50' },
+    { id: 'CUS003', name: 'Bob Johnson', phone: '555-0103', totalOrders: 8, totalSpent: 'GH₵1205.00' },
+    { id: 'CUS004', name: 'Alice Williams', phone: '555-0104', totalOrders: 12, totalSpent: 'GH₵780.25' },
+    { id: 'CUS005', name: 'Charlie Brown', phone: '555-0105', totalOrders: 1, totalSpent: 'GH₵99.99' },
 ];
 
 const customerSchema = z.object({
@@ -39,7 +39,7 @@ function AddCustomerForm({ onCustomerAdded }: { onCustomerAdded: (customer: any)
       name: values.name,
       phone: values.phone,
       totalOrders: 0,
-      totalSpent: '$0.00'
+      totalSpent: 'GH₵0.00'
     };
     onCustomerAdded(newCustomer);
     form.reset();

@@ -47,7 +47,7 @@ export default function POSPage() {
 
     const handleCheckout = () => {
         // In a real app, this would process the payment and create an order record.
-        alert(`Checkout complete! Total: $${total.toFixed(2)}`);
+        alert(`Checkout complete! Total: GH₵${total.toFixed(2)}`);
         setOrderItems([]);
     };
 
@@ -63,7 +63,7 @@ export default function POSPage() {
                             </div>
                             <CardContent className="p-3">
                                 <h3 className="font-semibold truncate text-sm">{product.name}</h3>
-                                <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
+                                <p className="text-xs text-muted-foreground">GH₵{product.price.toFixed(2)}</p>
                             </CardContent>
                         </Card>
                     ))}
@@ -86,7 +86,7 @@ export default function POSPage() {
                                         <p className="text-sm text-muted-foreground">x {item.quantity}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span>${(item.price * item.quantity).toFixed(2)}</span>
+                                        <span>GH₵{(item.price * item.quantity).toFixed(2)}</span>
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFromOrder(item.name)}>
                                             <X className="h-4 w-4 text-destructive" />
                                         </Button>
@@ -101,7 +101,7 @@ export default function POSPage() {
                             <CardFooter className="flex-col gap-4 !pt-6">
                                 <div className="border-t pt-4 w-full flex justify-between font-bold text-lg">
                                     <span>Total</span>
-                                    <span>${total.toFixed(2)}</span>
+                                    <span>GH₵{total.toFixed(2)}</span>
                                 </div>
                                 <Button className="w-full" onClick={handleCheckout}>Checkout</Button>
                             </CardFooter>

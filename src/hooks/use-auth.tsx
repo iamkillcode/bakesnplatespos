@@ -39,40 +39,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
+  const fetchAppUserData = useCallback(async (firebaseUser: User) => {
+    const userDocRef = doc(db, "users", firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setUser({ 
+            ...firebaseUser, 
+            role: userData.role || 'staff',
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            avatarUrl: userData.avatarUrl,
+        } as AppUser);
+    } else {
+        // Default to 'staff' if no role document is found
+        const defaultUserData = { 
+            role: 'staff',
+            firstName: '',
+            lastName: '',
+            avatarUrl: '',
+        };
+        await setDoc(userDocRef, defaultUserData, { merge: true });
+        setUser({ ...firebaseUser, ...defaultUserData } as AppUser);
+        console.warn(`No role document found for user ${firebaseUser.uid}. Defaulting to 'staff'.`);
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in, now fetch their role.
-        const userDocRef = doc(db, "users", firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUser({ 
-                ...firebaseUser, 
-                role: userData.role || 'staff',
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                avatarUrl: userData.avatarUrl,
-            } as AppUser);
-        } else {
-            // Default to 'staff' if no role document is found
-            const defaultUserData = { 
-                role: 'staff',
-                firstName: '',
-                lastName: '',
-                avatarUrl: '',
-            };
-            await setDoc(userDocRef, defaultUserData, { merge: true });
-            setUser({ ...firebaseUser, ...defaultUserData } as AppUser);
-            console.warn(`No role document found for user ${firebaseUser.uid}. Defaulting to 'staff'.`);
-        }
+        await fetchAppUserData(firebaseUser);
       } else {
         setUser(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [fetchAppUserData]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
@@ -108,13 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             firstName: data.firstName,
             lastName: data.lastName
         }, { merge: true });
-        setUser(prevUser => prevUser ? { ...prevUser, ...data } : null);
+        // Refetch user data to ensure state is up-to-date
+        await fetchAppUserData(user);
         toast({ title: 'Success', description: 'Profile updated successfully.' });
     } catch (error) {
         console.error("Error updating user profile:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to update profile.' });
     }
-  }, [user, toast]);
+  }, [user, toast, fetchAppUserData]);
   
   const uploadAvatar = useCallback(async (file: File) => {
     if (!user) return;
@@ -128,13 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocRef = doc(db, 'users', user.uid);
       await updateDoc(userDocRef, { avatarUrl: downloadURL });
       
-      setUser(prevUser => prevUser ? { ...prevUser, avatarUrl: downloadURL } : null);
-       toast({ title: 'Success', description: 'Avatar updated successfully.' });
+      // Refetch user data to ensure the new avatar URL is populated everywhere
+      await fetchAppUserData(user);
+
+      toast({ title: 'Success', description: 'Avatar updated successfully.' });
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to upload avatar.' });
+      toast({ variant: 'destructive', title: 'Error', 'description': 'Failed to upload avatar.' });
     }
-  }, [user, toast]);
+  }, [user, toast, fetchAppUserData]);
   
   const value = { user, loading, login, logout, updateUserProfile, uploadAvatar, error };
 

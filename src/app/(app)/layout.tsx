@@ -34,6 +34,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { AuthGuard, useAuth } from '@/hooks/use-auth';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
+    const { user } = useAuth();
+    const isExecutive = user?.role === 'executive';
+
   return (
     <AuthGuard>
         <SidebarProvider>
@@ -94,22 +97,26 @@ function AppLayout({ children }: { children: React.ReactNode }) {
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Analytics">
-                    <Link href="/analytics">
-                    <PieChart />
-                    <span>Analytics</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Reports">
-                    <Link href="/reports">
-                    <LineChart />
-                    <span>Reports</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
+                {isExecutive && (
+                    <>
+                        <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Analytics">
+                            <Link href="/analytics">
+                            <PieChart />
+                            <span>Analytics</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                        <SidebarMenuButton asChild tooltip="Reports">
+                            <Link href="/reports">
+                            <LineChart />
+                            <span>Reports</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    </>
+                )}
             </SidebarMenu>
             </SidebarContent>
         </Sidebar>
@@ -149,7 +156,7 @@ function UserMenu() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">Staff</p>
+                        <p className="text-sm font-medium leading-none">{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Staff'}</p>
                         <p className="text-xs leading-none text-muted-foreground">
                             {user?.email}
                         </p>

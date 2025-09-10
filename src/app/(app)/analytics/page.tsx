@@ -1,12 +1,13 @@
 
-
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DollarSign, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { getAnalyticsSummary } from '@/ai/flows/get-analytics-summary';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/hooks/use-auth';
 
 type AnalyticsData = {
     totalRevenue: number;
@@ -19,21 +20,40 @@ export default function AnalyticsPage() {
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
+
     useEffect(() => {
-        async function fetchAnalytics() {
-            setLoading(true);
-            try {
-                const result = await getAnalyticsSummary({});
-                setSummary(result.summary);
-                setAnalytics(result.analytics);
-            } catch (error) {
-                console.error('Failed to fetch analytics summary:', error);
-                setSummary('Could not load AI-powered summary. Please try again later.');
-            }
-            setLoading(false);
+        if (!authLoading && user?.role !== 'executive') {
+            router.push('/');
         }
-        fetchAnalytics();
-    }, []);
+    }, [user, authLoading, router]);
+
+    useEffect(() => {
+        if (user?.role === 'executive') {
+            async function fetchAnalytics() {
+                setLoading(true);
+                try {
+                    const result = await getAnalyticsSummary({});
+                    setSummary(result.summary);
+                    setAnalytics(result.analytics);
+                } catch (error) {
+                    console.error('Failed to fetch analytics summary:', error);
+                    setSummary('Could not load AI-powered summary. Please try again later.');
+                }
+                setLoading(false);
+            }
+            fetchAnalytics();
+        }
+    }, [user]);
+    
+    if (authLoading || user?.role !== 'executive') {
+        return (
+            <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
 
     const formatCurrency = (amount: number) => `GH₵${amount.toFixed(2)}`;
 

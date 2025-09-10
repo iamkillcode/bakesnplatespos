@@ -3,14 +3,21 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { app } from '@/lib/firebase';
+import { app, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 const auth = getAuth(app);
 
+type UserRole = 'staff' | 'executive';
+
+interface AppUser extends User {
+  role: UserRole;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
@@ -20,13 +27,27 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in, now fetch their role.
+        const userDocRef = doc(db, "users", firebaseUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUser({ ...firebaseUser, role: userData.role || 'staff' } as AppUser);
+        } else {
+            // Default to 'staff' if no role document is found
+            setUser({ ...firebaseUser, role: 'staff' } as AppUser);
+            console.warn(`No role document found for user ${firebaseUser.uid}. Defaulting to 'staff'.`);
+        }
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -42,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(e.message);
       return false;
     } finally {
-      setLoading(false);
+      // The onAuthStateChanged listener will handle setting the user state.
     }
   };
 

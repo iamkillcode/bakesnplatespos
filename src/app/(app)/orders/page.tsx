@@ -205,6 +205,14 @@ export default function OrdersPage() {
         setCustomers(prev => [...prev, customer]);
     };
 
+    const handleUpdateOrder = (orderId: string, newStatus: string) => {
+        setOrders(currentOrders =>
+            currentOrders.map(order =>
+                order.id === orderId ? { ...order, status: newStatus } : order
+            )
+        );
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -216,7 +224,7 @@ export default function OrdersPage() {
                     <CardTitle>All Orders</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <RecentOrdersTable orders={orders} />
+                    <RecentOrdersTable orders={orders} onUpdateOrder={handleUpdateOrder} />
                 </CardContent>
             </Card>
         </div>

@@ -4,6 +4,7 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useEffect, useState } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const initialOrders = [
     { id: 'ORD001', customer: 'John Doe', date: '2023-11-20', total: 'GH₵150.00', status: 'Completed' },
@@ -12,6 +13,8 @@ const initialOrders = [
     { id: 'ORD004', customer: 'Alice Williams', date: '2023-11-22', total: 'GH₵78.25', status: 'Completed' },
     { id: 'ORD005', customer: 'Charlie Brown', date: '2023-11-23', total: 'GH₵99.99', status: 'Cancelled' },
 ];
+
+const statuses = ['Completed', 'Pending', 'In Progress', 'Cancelled'];
 
 function getStatusVariant(status: string) {
     switch (status) {
@@ -24,7 +27,7 @@ function getStatusVariant(status: string) {
 }
 
 
-export function RecentOrdersTable({ orders: ordersProp }: { orders?: any[] }) {
+export function RecentOrdersTable({ orders: ordersProp, onUpdateOrder }: { orders?: any[], onUpdateOrder?: (orderId: string, newStatus: string) => void }) {
     const [orders, setOrders] = useState(ordersProp || initialOrders);
 
     useEffect(() => {
@@ -32,6 +35,19 @@ export function RecentOrdersTable({ orders: ordersProp }: { orders?: any[] }) {
             setOrders(ordersProp);
         }
     }, [ordersProp]);
+
+    const handleStatusChange = (orderId: string, newStatus: string) => {
+        if (onUpdateOrder) {
+            onUpdateOrder(orderId, newStatus);
+        } else {
+            // Fallback to internal state update if no handler is provided
+            setOrders(currentOrders =>
+                currentOrders.map(order =>
+                    order.id === orderId ? { ...order, status: newStatus } : order
+                )
+            );
+        }
+    };
 
     return (
         <Table>
@@ -52,9 +68,22 @@ export function RecentOrdersTable({ orders: ordersProp }: { orders?: any[] }) {
                         <TableCell>{order.date}</TableCell>
                         <TableCell>{order.total}</TableCell>
                         <TableCell>
-                            <Badge variant={getStatusVariant(order.status)} className="capitalize">
-                                {order.status.toLowerCase()}
-                            </Badge>
+                           <Select value={order.status} onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}>
+                               <SelectTrigger className="w-36">
+                                   <Badge variant={getStatusVariant(order.status)} className="capitalize w-full justify-center">
+                                     <SelectValue>{order.status.toLowerCase()}</SelectValue>
+                                   </Badge>
+                               </SelectTrigger>
+                               <SelectContent>
+                                   {statuses.map(status => (
+                                       <SelectItem key={status} value={status}>
+                                            <Badge variant={getStatusVariant(status)} className="capitalize w-full justify-center">
+                                                {status.toLowerCase()}
+                                            </Badge>
+                                       </SelectItem>
+                                   ))}
+                               </SelectContent>
+                           </Select>
                         </TableCell>
                     </TableRow>
                 ))}
